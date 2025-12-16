@@ -1,0 +1,8 @@
+{
+    "name": "guided-coding-mentor",
+    "description": "Senior engineering mentor for deliberate coding practice with TODO-driven workflow",
+    "version": "1.1.0",
+    "author": {
+        "name": "Ladvien"
+    }
+}
