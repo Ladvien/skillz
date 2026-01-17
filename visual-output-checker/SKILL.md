@@ -177,17 +177,7 @@ def parse_vlm_response(content: str) -> dict:
 
 | Model | Speed | Quality | Cost |
 |-------|-------|---------|------|
-| `qwen3-vl:8b` | Fast | Good | Local/free |
-| `qwen3-vl:32b` | Medium | Better | Local/free |
 | `qwen3-vl:235b-cloud` | Slow | Best | Cloud/paid |
-
-Use local models for iteration, cloud for final checks.
-
-### Rate Limits (Cloud)
-
-- Free: 5/month
-- Pro ($20): 20/month
-- Max ($100): 100/month
 
 ---
 
