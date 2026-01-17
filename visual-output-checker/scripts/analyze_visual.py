@@ -1,14 +1,14 @@
 #!/usr/bin/env python3
 """
-Visual Output Checker - Analyze images using Ollama Cloud's vision models.
+Visual Output Checker - Analyze images using Ollama's vision models.
 
 Usage:
-    python analyze_visual.py <image_path> [--type TYPE] [--model MODEL] [--reference REF_IMAGE]
-    
+    python analyze_visual.py <image_path> [--reference REF] [--prompt PROMPT] [--model MODEL]
+
 Examples:
-    python analyze_visual.py render.png --type terrain
-    python analyze_visual.py chart.png --type chart
-    python analyze_visual.py screenshot.png --type ui --reference mockup.png
+    python analyze_visual.py render.png                              # Debug mode
+    python analyze_visual.py test.png --reference expected.png       # Comparison
+    python analyze_visual.py chart.png --prompt "Check axis labels"  # Custom
 """
 
 import argparse
@@ -19,131 +19,96 @@ from pathlib import Path
 try:
     from ollama import chat
 except ImportError:
-    print("Error: ollama package not installed. Run: pip install ollama")
+    print("Error: ollama package not installed. Run: pip install ollama", file=sys.stderr)
     sys.exit(1)
 
-# Domain-specific analysis prompts
-PROMPTS = {
-    "terrain": """Analyze this 3D terrain render for quality issues. Return JSON only:
-{
-    "score": 1-10,
-    "passes": true/false (true if score >= 7),
-    "issues": [
-        {"severity": "high|medium|low", "description": "specific issue"}
-    ],
-    "texture_quality": {
-        "tiling_visible": true/false,
-        "uv_stretching": true/false,
-        "resolution_adequate": true/false
-    },
-    "geometry": {
-        "polygon_artifacts": true/false,
-        "lod_issues": true/false
-    },
-    "lighting": {
-        "shadow_quality": "good|fair|poor",
-        "ao_consistent": true/false
-    },
-    "fixes": ["specific actionable fixes"],
-    "code_suggestion": "one-line code change if applicable"
-}""",
 
-    "chart": """Analyze this chart/graph for accuracy and clarity. Return JSON only:
-{
-    "score": 1-10,
-    "passes": true/false (true if score >= 7),
-    "issues": [
-        {"severity": "high|medium|low", "description": "specific issue"}
-    ],
-    "readability": {
-        "axis_labels_clear": true/false,
-        "legend_visible": true/false,
-        "title_present": true/false
-    },
-    "data_visualization": {
-        "appropriate_chart_type": true/false,
-        "colors_distinguishable": true/false,
-        "scale_appropriate": true/false
-    },
-    "fixes": ["specific actionable fixes"],
-    "code_suggestion": "one-line code change if applicable"
-}""",
+DEBUG_PROMPT = """Describe everything in this image exhaustively:
 
-    "ui": """Analyze this UI screenshot for design quality. Return JSON only:
-{
-    "score": 1-10,
-    "passes": true/false (true if score >= 7),
-    "issues": [
-        {"severity": "high|medium|low", "description": "specific issue"}
-    ],
-    "layout": {
-        "alignment_consistent": true/false,
-        "spacing_uniform": true/false,
-        "hierarchy_clear": true/false
-    },
-    "visual": {
-        "colors_consistent": true/false,
-        "text_readable": true/false,
-        "contrast_adequate": true/false
-    },
-    "fixes": ["specific actionable fixes"],
-    "code_suggestion": "CSS/HTML change if applicable"
-}""",
+1. Overall composition and layout
+2. Colors (specific hues, gradients, patterns)
+3. Shapes and geometry (objects, boundaries, edges)
+4. Text or labels (exact content if readable)
+5. Lighting and shadows
+6. Artifacts, glitches, or anomalies
+7. Empty or missing regions
+8. Foreground vs background elements
 
-    "general": """Analyze this image for visual quality issues. Return JSON only:
+Be literal. Describe what is visually present, not what it means.
+
+Return JSON:
 {
-    "score": 1-10,
-    "passes": true/false (true if score >= 7),
-    "issues": [
-        {"severity": "high|medium|low", "description": "specific issue"}
+    "description": "detailed prose description",
+    "elements": [
+        {"type": "shape|text|texture|artifact|other", "description": "...", "location": "where in image"}
     ],
-    "observations": ["key observations about the image"],
-    "fixes": ["suggested improvements"],
-    "code_suggestion": "code change if applicable"
+    "colors": ["colors present"],
+    "anomalies": ["anything unexpected"]
 }"""
-}
 
-COMPARISON_PROMPT = """Compare these two images. The first is the test image, the second is the reference/expected image.
-Identify differences and whether the test matches the reference. Return JSON only:
+
+COMPARISON_PROMPT = """Compare these two images. First is test, second is reference.
+Describe all differences. Be specific about location and nature of each difference.
+
+Return JSON:
 {
-    "score": 1-10,
-    "passes": true/false (true if score >= 7),
-    "matches_reference": true/false,
+    "matches": true/false,
     "differences": [
-        {"severity": "high|medium|low", "description": "specific difference"}
+        {"location": "where", "test": "what test shows", "reference": "what reference shows"}
     ],
-    "fixes": ["changes needed to match reference"]
+    "summary": "one sentence overall assessment"
 }"""
+
+
+def parse_json_response(content: str) -> dict:
+    """Extract JSON from VLM response, handling markdown fences."""
+    if '```json' in content:
+        content = content.split('```json')[1].split('```')[0]
+    elif '```' in content:
+        content = content.split('```')[1].split('```')[0]
+    
+    try:
+        return json.loads(content.strip())
+    except json.JSONDecodeError:
+        return {
+            "raw_response": content,
+            "parse_error": True
+        }
 
 
 def analyze_image(
     image_path: str,
-    check_type: str = "general",
     model: str = "qwen3-vl:235b-cloud",
-    reference_path: str = None
+    reference_path: str = None,
+    custom_prompt: str = None
 ) -> dict:
     """
     Analyze an image using Ollama's vision model.
     
     Args:
         image_path: Path to the image to analyze
-        check_type: Type of analysis (terrain, chart, ui, general)
         model: Ollama model to use
         reference_path: Optional reference image for comparison
+        custom_prompt: Optional custom prompt (overrides default)
     
     Returns:
-        dict: Analysis results as JSON
+        dict: Analysis results
     """
     path = Path(image_path)
     if not path.exists():
         return {"error": f"Image not found: {image_path}"}
     
-    # Build the prompt
-    if reference_path and Path(reference_path).exists():
+    # Determine prompt and images
+    if custom_prompt:
+        prompt = custom_prompt
+        images = [str(path)]
+        if reference_path and Path(reference_path).exists():
+            images.append(reference_path)
+    elif reference_path and Path(reference_path).exists():
         prompt = COMPARISON_PROMPT
         images = [str(path), reference_path]
     else:
-        prompt = PROMPTS.get(check_type, PROMPTS["general"])
+        prompt = DEBUG_PROMPT
         images = [str(path)]
     
     try:
@@ -155,66 +120,42 @@ def analyze_image(
                 'images': images
             }]
         )
+        return parse_json_response(response.message.content)
         
-        content = response.message.content
-        
-        # Try to parse as JSON
-        # Handle common issues: markdown code blocks, trailing text
-        if '```json' in content:
-            content = content.split('```json')[1].split('```')[0]
-        elif '```' in content:
-            content = content.split('```')[1].split('```')[0]
-        
-        try:
-            return json.loads(content.strip())
-        except json.JSONDecodeError:
-            # Return raw response if JSON parsing fails
-            return {
-                "score": 0,
-                "passes": False,
-                "raw_response": response.message.content,
-                "parse_error": True
-            }
-            
     except Exception as e:
-        return {
-            "error": str(e),
-            "score": 0,
-            "passes": False
-        }
+        return {"error": str(e)}
 
 
 def main():
     parser = argparse.ArgumentParser(
-        description="Analyze visual outputs using Ollama Cloud vision models"
+        description="Analyze images using Ollama vision models"
     )
     parser.add_argument("image", help="Path to image to analyze")
     parser.add_argument(
-        "--type", "-t",
-        choices=["terrain", "chart", "ui", "general"],
-        default="general",
-        help="Type of analysis to perform"
+        "--reference", "-r",
+        help="Reference image for comparison"
+    )
+    parser.add_argument(
+        "--prompt", "-p",
+        help="Custom prompt (overrides default debug/comparison)"
     )
     parser.add_argument(
         "--model", "-m",
         default="qwen3-vl:235b-cloud",
-        help="Ollama model to use (default: qwen3-vl:235b-cloud)"
-    )
-    parser.add_argument(
-        "--reference", "-r",
-        help="Reference image for comparison (optional)"
+        help="Ollama model (default: qwen3-vl:235b-cloud)"
     )
     parser.add_argument(
         "--quiet", "-q",
         action="store_true",
-        help="Output only JSON, no status messages"
+        help="Output only JSON"
     )
     
     args = parser.parse_args()
     
     if not args.quiet:
-        print(f"Analyzing: {args.image}", file=sys.stderr)
-        print(f"Type: {args.type}", file=sys.stderr)
+        mode = "custom" if args.prompt else ("comparison" if args.reference else "debug")
+        print(f"Image: {args.image}", file=sys.stderr)
+        print(f"Mode: {mode}", file=sys.stderr)
         print(f"Model: {args.model}", file=sys.stderr)
         if args.reference:
             print(f"Reference: {args.reference}", file=sys.stderr)
@@ -222,17 +163,17 @@ def main():
     
     result = analyze_image(
         image_path=args.image,
-        check_type=args.type,
         model=args.model,
-        reference_path=args.reference
+        reference_path=args.reference,
+        custom_prompt=args.prompt
     )
     
     print(json.dumps(result, indent=2))
     
-    # Exit with error code if analysis failed or score is low
-    if result.get("error") or result.get("parse_error"):
+    # Exit codes: 0=success, 1=analysis issue, 2=error
+    if result.get("error"):
         sys.exit(2)
-    elif not result.get("passes", True):
+    elif result.get("parse_error"):
         sys.exit(1)
     else:
         sys.exit(0)
