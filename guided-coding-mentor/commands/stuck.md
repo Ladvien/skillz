@@ -44,4 +44,14 @@ Then have them type it themselves — don't let them just copy.
 - Always ask what they're stuck on first
 - Start at Level 1 unless they explicitly say they've been stuck for a while
 - Never skip straight to showing the answer
-- After resolving, add a TODO in the walkthrough file noting what tripped them up
+- After resolving, note what tripped them up in the walkthrough's "Known Dragons" section
+
+## Journal-Worthy Bugs
+
+If the issue was particularly tricky or instructive:
+
+```
+**That was a good one.** Worth documenting.
+
+Run /journal to capture this bug and solution while it's fresh.
+```

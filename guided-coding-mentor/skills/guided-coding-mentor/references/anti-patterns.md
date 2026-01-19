@@ -13,7 +13,7 @@ Adding TODOs to error.rs:
 
 **Good:**
 ```
-Adding TODOs to /home/user/project/src/error.rs:
+Adding TODOs to src/error.rs:
 ```
 
 **If you don't know the path**, ask or find it:
@@ -63,11 +63,29 @@ find . -name "error.rs" -type f
 
 **Instead**: Show in code, explain in one sentence.
 
+### ❌ Skipping the Plan Phase
+
+**Why it's bad**: No clear goal, no acceptance criteria, no way to know when you're done.
+
+**Instead**: Always create `slop/walkthroughs/YYYY-MM-DD-description.md` with full plan before building.
+
 ### ❌ Skipping the Walkthrough File
 
 **Why it's bad**: No record of progress. Can't resume. No learning artifact.
 
-**Instead**: Always create `slop/walkthrough/NNN.md` before starting.
+**Instead**: Always create walkthrough file before starting guided implementation.
+
+### ❌ Letting Bugs Go Undocumented
+
+**Why it's bad**: Same bugs will bite again. Learning is lost.
+
+**Instead**: Prompt for /journal after solving tricky bugs. Capture the investigation and solution.
+
+### ❌ Ignoring Context Limits
+
+**Why it's bad**: Conversation resets, all work is lost, user has to re-explain everything.
+
+**Instead**: Proactively prompt for /journal when context is getting full.
 
 ## Communication Anti-Patterns
 
@@ -80,7 +98,7 @@ Now implement the parser.
 
 Good:
 ```
-Adding TODOs to /home/user/project/src/parser.rs:
+Adding TODOs to src/parser.rs:
 [exact code with TODO markers]
 ```
 
@@ -135,7 +153,7 @@ Good: Show them where the issue is (with full path), give a hint, let them fix i
 
 Bad: Ending abruptly when time runs out.
 
-Good: Always end with the session ender template - what they built, learned, and can now do.
+Good: Always end with recap - what they built, learned, and can now do. Prompt for journal.
 
 ### ❌ Marathon Sessions
 
@@ -151,15 +169,21 @@ Good: The 90-second rule. Nudge → Hint → Breadcrumb → Show.
 
 ### ❌ Not Updating Walkthrough File
 
-Bad: Finishing session without updating progress in `slop/walkthrough/NNN.md`.
+Bad: Finishing session without updating progress in walkthrough file.
 
 Good: Mark completed steps, add session notes, update status.
+
+### ❌ Not Prompting for Journal
+
+Bad: Solving a complex bug and moving on without documenting it.
+
+Good: "That was tricky. Run /journal to capture this while it's fresh."
 
 ## Quick Reference: Do vs Don't
 
 | Don't | Do |
 |-------|-----|
-| Reference files without path | Always use full path: `/path/to/file.rs` |
+| Reference files without path | Always use full path: `src/file.rs` |
 | Write code for them | Insert TODOs for them to fill |
 | "Go to line 42" | Add TODO at exact location |
 | Explain theory first | Explain as they encounter it |
@@ -170,4 +194,7 @@ Good: Mark completed steps, add session notes, update status.
 | Wait for them to ask | Proactively check progress |
 | Let them struggle endlessly | Intervene within 90 seconds |
 | End abruptly | Always consolidate learning |
-| Skip walkthrough file | Create `slop/walkthrough/NNN.md` first |
+| Skip planning | Create walkthrough plan first |
+| Skip walkthrough file | Create `slop/walkthroughs/YYYY-MM-DD-*.md` |
+| Ignore context limits | Prompt for /journal proactively |
+| Let bugs go undocumented | Prompt for journal after tricky bugs |

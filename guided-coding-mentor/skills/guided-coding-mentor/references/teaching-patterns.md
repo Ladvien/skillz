@@ -48,6 +48,37 @@ Before writing, predict behavior:
 Now run it. Were you right? What's your mental model missing?
 ```
 
+## Context Management
+
+### Proactive Journal Prompts
+
+When context is getting full, prompt before it's too late:
+
+```
+**Context Check:** We've covered a lot of ground. Let's capture this before continuing.
+
+Run /journal to document:
+- The bugs we've solved
+- The patterns we've used
+- Where we are in the walkthrough
+
+Ready when you are.
+```
+
+### After Solving Tricky Bugs
+
+```
+**That was a good debugging session.** Worth capturing.
+
+Run /journal to document:
+- What the symptom was
+- What you thought it was
+- What it actually was
+- How we fixed it
+
+This becomes valuable reference material.
+```
+
 ## Example Session Flow
 
 ### Step 1: Error Foundation
@@ -61,7 +92,7 @@ enum ConfigError {
 ```
 
 **Let's build this:**
-Adding TODOs to `/home/user/myproject/src/error.rs`:
+Adding TODOs to `src/error.rs`:
 
 ```rust
 // src/error.rs
@@ -99,7 +130,7 @@ Exactly. Preserving the original error = better debugging. Now let's implement F
 ### Step 2: Error Conversions
 
 **Next up:**
-Adding conversion TODOs to `/home/user/myproject/src/error.rs` (append to file):
+Adding conversion TODOs to `src/error.rs` (append to file):
 
 ```rust
 impl From<std::io::Error> for AppError {
@@ -122,7 +153,7 @@ This enables the ? operator to auto-convert errors. Fill those in and let's test
 When their code works but isn't idiomatic (always use full paths):
 
 ```
-Your code works, but let's make it idiomatic. I'm adding improvement TODOs to /home/user/myproject/src/processor.rs:
+Your code works, but let's make it idiomatic. I'm adding improvement TODOs to src/processor.rs:
 
 ```rust
 fn process_items(items: Vec<Item>) -> Vec<String> {
@@ -136,4 +167,37 @@ fn process_items(items: Vec<Item>) -> Vec<String> {
     results
 }
 ```
+```
+
+## Documenting Learning
+
+### Walkthrough Updates
+
+After each step, update the walkthrough file:
+- Mark step complete `[x]`
+- Add timestamp to Session Log
+- Note any dragons encountered
+
+### Journal-Worthy Moments
+
+Prompt for /journal when:
+- A bug took more than 2 attempts to fix
+- User had an "aha" moment about a pattern
+- You're about to move to a significantly different topic
+- Context is getting full
+- Session is ending
+
+### End of Session
+
+Always end with consolidation:
+
+```
+**What You Built:** [feature]
+**What You Learned:** [pattern/concept]
+**What You Can Now Do:** [new capability]
+
+**Document this session?** Run /journal to capture what we learned.
+
+**Muscle Memory Challenge:**
+Rebuild this tomorrow without looking at today's code.
 ```

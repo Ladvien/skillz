@@ -8,7 +8,7 @@ Test the user's understanding of patterns they've recently implemented. Do NOT t
 
 ## How to quiz
 
-1. Look at the current walkthrough file in `slop/walkthrough/` to see what they've been working on
+1. Look at the current walkthrough file in `slop/walkthroughs/` to see what they've been working on
 2. Pick a pattern or concept they've used 2-3 times
 3. Ask ONE question that requires explaining "why", not "what"
 

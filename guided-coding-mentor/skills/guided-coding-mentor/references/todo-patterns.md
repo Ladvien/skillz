@@ -7,7 +7,7 @@ Every TODO instruction MUST include the complete file path from project root.
 ### Correct Format
 
 ```
-Adding TODOs to /home/user/project/src/parser.rs:
+Adding TODOs to src/parser.rs:
 
 ```rust
 fn parse_config(input: &str) -> Result<Config, Error> {
@@ -28,7 +28,7 @@ Adjust scaffolding level based on user's experience:
 
 ### Heavy Scaffolding (Beginners)
 
-In `/home/user/project/src/config.rs`:
+In `src/config.rs`:
 ```rust
 fn parse_config(input: &str) -> Result<Config, Error> {
     // TODO: Check if input is empty, return Error::EmptyInput if so
@@ -40,7 +40,7 @@ fn parse_config(input: &str) -> Result<Config, Error> {
 
 ### Light Scaffolding (Intermediate)
 
-In `/home/user/project/src/config.rs`:
+In `src/config.rs`:
 ```rust
 fn parse_config(input: &str) -> Result<Config, Error> {
     // TODO: Validate input and parse lines with proper error handling
@@ -49,14 +49,14 @@ fn parse_config(input: &str) -> Result<Config, Error> {
 
 ### Minimal Scaffolding (Advanced)
 
-In `/home/user/project/src/config.rs`:
+In `src/config.rs`:
 ```rust
 // TODO: parse_config function that returns Result<Config, Error>
 ```
 
 ## Good TODO Layout Example
 
-In `/home/user/project/src/layout.rs`:
+In `src/layout.rs`:
 ```rust
 fn recursive_cut(
     &self,
@@ -94,7 +94,7 @@ fn recursive_cut(
 Always show the exact file state after adding TODOs with full path:
 
 ```
-**Here's what to fill in** in `/home/user/project/src/main.rs`:
+**Here's what to fill in** in `src/main.rs`:
 
 ```rust
 fn main() {
@@ -136,7 +136,7 @@ As users advance, reduce scaffolding:
 
 When code fails, add a TODO at the exact issue location with full path:
 
-In `/home/user/project/src/user.rs`:
+In `src/user.rs`:
 ```rust
 fn get_name(user: &User) -> String {
     // TODO: The line below returns &str, but we need String
