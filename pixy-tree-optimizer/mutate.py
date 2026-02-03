@@ -1,0 +1,368 @@
+#!/usr/bin/env python3
+"""
+mutate.py - Parameter mutation logic for PixyTree optimization
+VLM-guided hill climbing with exploration
+"""
+
+import random
+from dataclasses import dataclass
+from typing import Optional, Union
+
+
+@dataclass
+class ParameterBounds:
+    min_val: Union[int, float]
+    max_val: Union[int, float]
+    step: float = 0.05  # Mutation step as fraction of range
+    is_integer: bool = False
+    
+
+# Complete parameter bounds matching PixyTree's Rust structs
+PARAM_BOUNDS = {
+    # ========== TRUNK (11 params) ==========
+    "trunk_height": ParameterBounds(1.0, 25.0, 0.1),
+    "trunk_radius": ParameterBounds(0.1, 2.0, 0.05),
+    "trunk_taper": ParameterBounds(0.0, 1.0, 0.05),
+    "trunk_taper_curve": ParameterBounds(0.0, 1.0, 0.05),
+    "trunk_flare": ParameterBounds(1.0, 2.0, 0.05),
+    "trunk_randomness": ParameterBounds(0.0, 0.5, 0.02),
+    "root_flare_count": ParameterBounds(0, 8, 1, is_integer=True),
+    "root_flare_spread": ParameterBounds(0.0, 1.0, 0.05),
+    "root_flare_height": ParameterBounds(0.0, 0.5, 0.02),
+    "radial_segments": ParameterBounds(4, 16, 1, is_integer=True),
+    "height_segments": ParameterBounds(2, 12, 1, is_integer=True),
+    
+    # ========== TRUNK TERMINATION (4 params) ==========
+    # trunk_termination is enum: FlatCap=0, PointedTip=1, LeaderBranch=2
+    "trunk_termination": ParameterBounds(0, 2, 1, is_integer=True),
+    "leader_length": ParameterBounds(0.0, 0.5, 0.02),
+    "leader_taper": ParameterBounds(0.0, 0.3, 0.02),
+    # leader_has_branches is bool
+    
+    # ========== BRANCHES (19 params) ==========
+    "branch_start": ParameterBounds(0.0, 1.0, 0.05),
+    "branch_end": ParameterBounds(0.0, 1.0, 0.05),
+    "branch_density": ParameterBounds(0.5, 4.0, 0.1),
+    "branch_length": ParameterBounds(0.1, 1.0, 0.05),
+    "branch_angle": ParameterBounds(10.0, 90.0, 2.0),
+    "branch_radius_ratio": ParameterBounds(0.1, 0.5, 0.02),
+    "branch_taper": ParameterBounds(0.3, 1.0, 0.05),
+    "phyllotaxis_angle": ParameterBounds(45.0, 180.0, 5.0),
+    "branch_randomness": ParameterBounds(0.0, 0.5, 0.02),
+    "up_attraction": ParameterBounds(-1.0, 1.0, 0.05),
+    "branch_recursion": ParameterBounds(0, 4, 1, is_integer=True),
+    "sub_branch_count": ParameterBounds(0, 5, 1, is_integer=True),
+    "sub_branch_scale": ParameterBounds(0.3, 0.8, 0.05),
+    "branch_length_variation": ParameterBounds(0.0, 0.5, 0.02),
+    "sub_branch_position_bias": ParameterBounds(-0.5, 0.5, 0.02),
+    "apical_dominance": ParameterBounds(0.0, 1.0, 0.05),
+    "branch_flatness": ParameterBounds(0.0, 1.0, 0.05),
+    "branch_angle_curve": ParameterBounds(-0.5, 0.5, 0.02),
+    "crown_angle_variation": ParameterBounds(-0.5, 0.5, 0.02),
+    
+    # ========== TWIST & PHYSICS (6 params) ==========
+    "trunk_twist": ParameterBounds(0.0, 45.0, 2.0),
+    "branch_twist": ParameterBounds(0.0, 30.0, 2.0),
+    "gravity_strength": ParameterBounds(0.0, 1.0, 0.05),
+    "stiffness": ParameterBounds(0.0, 1.0, 0.05),
+    "break_chance": ParameterBounds(0.0, 0.5, 0.02),
+    
+    # ========== SPLITTING (5 params) ==========
+    # split_enabled is bool
+    "split_probability": ParameterBounds(0.0, 1.0, 0.05),
+    "split_angle": ParameterBounds(15.0, 60.0, 2.0),
+    "split_position": ParameterBounds(0.3, 0.7, 0.02),
+    "split_radius_threshold": ParameterBounds(0.03, 0.2, 0.01),
+    
+    # ========== CROWN (3 params) ==========
+    # crown_shape is enum: Spherical=0, Conical=1, Hemispherical=2, Cylindrical=3,
+    #   TaperedCylindrical=4, Flame=5, Spreading=6, Umbrella=7, Irregular=8
+    "crown_shape": ParameterBounds(0, 8, 1, is_integer=True),
+    "crown_influence": ParameterBounds(0.0, 1.0, 0.05),
+    "crown_radius": ParameterBounds(0.5, 3.0, 0.1),
+    
+    # ========== FLOOR & COLLAR (4 params) ==========
+    # floor_avoidance is bool
+    "floor_level": ParameterBounds(-1.0, 1.0, 0.05),
+    # branch_collar_enabled is bool
+    "branch_collar_length": ParameterBounds(1.0, 2.0, 0.05),
+    
+    # ========== L-SYSTEM GROWTH (16 params) ==========
+    "grow_threshold": ParameterBounds(0.1, 0.6, 0.02),
+    "cut_threshold": ParameterBounds(0.05, 0.3, 0.02),
+    "split_threshold": ParameterBounds(0.3, 1.0, 0.05),
+    "flower_threshold": ParameterBounds(0.05, 0.3, 0.02),
+    "lsystem_apical_dominance": ParameterBounds(0.2, 1.0, 0.05),
+    "lateral_start": ParameterBounds(0.0, 0.5, 0.02),
+    "lateral_end": ParameterBounds(0.5, 1.0, 0.02),
+    "lateral_density": ParameterBounds(0.5, 4.0, 0.1),
+    "lateral_activation": ParameterBounds(0.2, 0.6, 0.02),
+    "lateral_angle": ParameterBounds(20.0, 80.0, 2.0),
+    "iterations": ParameterBounds(3, 8, 1, is_integer=True),
+    "lsystem_branch_length": ParameterBounds(0.2, 0.8, 0.02),
+    "gravitropism": ParameterBounds(-0.3, 0.5, 0.02),
+    "lsystem_randomness": ParameterBounds(0.0, 0.4, 0.02),
+    "lsystem_gravity_strength": ParameterBounds(0.0, 0.5, 0.02),
+    "lsystem_stiffness": ParameterBounds(0.2, 1.0, 0.05),
+}
+
+
+# Parameters grouped by visual impact for smarter mutation
+HIGH_IMPACT_PARAMS = [
+    "trunk_height", "trunk_radius", "trunk_taper",
+    "branch_density", "branch_angle", "branch_length",
+    "crown_influence", "crown_shape",
+    "gravity_strength", "up_attraction",
+    "branch_recursion", "sub_branch_count",
+]
+
+MEDIUM_IMPACT_PARAMS = [
+    "branch_start", "branch_end",
+    "phyllotaxis_angle", "apical_dominance",
+    "trunk_flare", "branch_randomness",
+    "sub_branch_scale", "stiffness",
+]
+
+LOW_IMPACT_PARAMS = [
+    "trunk_randomness", "branch_twist", "trunk_twist",
+    "root_flare_count", "radial_segments", "height_segments",
+    "branch_collar_length", "leader_length",
+]
+
+
+def parse_suggestion(suggestion) -> tuple[str, float]:
+    """
+    Parse VLM suggestion into direction and magnitude.
+    Returns: (direction, magnitude) where direction is "increase", "decrease", or "set"
+    """
+    if isinstance(suggestion, (int, float)):
+        if suggestion > 0:
+            return ("increase", abs(suggestion))
+        elif suggestion < 0:
+            return ("decrease", abs(suggestion))
+        else:
+            return ("none", 0)
+    
+    suggestion = str(suggestion).lower().strip()
+    
+    if "increase" in suggestion or "more" in suggestion or "higher" in suggestion:
+        # Try to extract magnitude
+        words = suggestion.split()
+        for word in words:
+            try:
+                mag = float(word.replace("%", "").replace("+", ""))
+                return ("increase", mag / 100 if mag > 1 else mag)
+            except ValueError:
+                continue
+        return ("increase", 1.0)  # Default magnitude
+    
+    elif "decrease" in suggestion or "less" in suggestion or "lower" in suggestion or "reduce" in suggestion:
+        words = suggestion.split()
+        for word in words:
+            try:
+                mag = float(word.replace("%", "").replace("-", ""))
+                return ("decrease", mag / 100 if mag > 1 else mag)
+            except ValueError:
+                continue
+        return ("decrease", 1.0)
+    
+    # Try to parse as a direct value
+    try:
+        val = float(suggestion)
+        return ("set", val)
+    except ValueError:
+        pass
+    
+    return ("none", 0)
+
+
+def mutate_single_param(
+    param_name: str,
+    current_value: Union[int, float],
+    direction: str,
+    magnitude: float,
+    bounds: ParameterBounds
+) -> Union[int, float]:
+    """
+    Apply a mutation to a single parameter.
+    """
+    param_range = bounds.max_val - bounds.min_val
+    step_size = bounds.step * param_range * magnitude
+    
+    # Add some noise for exploration
+    noise = random.gauss(0, step_size * 0.2)
+    
+    if direction == "increase":
+        new_val = current_value + step_size + noise
+    elif direction == "decrease":
+        new_val = current_value - step_size + noise
+    elif direction == "set":
+        new_val = magnitude  # magnitude is the target value
+    else:
+        new_val = current_value
+    
+    # Clamp to bounds
+    new_val = max(bounds.min_val, min(bounds.max_val, new_val))
+    
+    # Round integers
+    if bounds.is_integer:
+        new_val = int(round(new_val))
+    
+    return new_val
+
+
+def mutate_parameters(
+    current_params: dict,
+    vlm_suggestions: dict,
+    exploration_rate: float = 0.2,
+    mutation_strength: float = 1.0
+) -> dict:
+    """
+    Apply VLM-suggested mutations with some random exploration.
+    
+    Args:
+        current_params: Current parameter values
+        vlm_suggestions: Dict of param_name -> suggestion from VLM
+        exploration_rate: Probability of random mutation on unexplored params
+        mutation_strength: Multiplier for mutation magnitude (0.5 = half step, 2.0 = double step)
+    
+    Returns:
+        New parameter dict with mutations applied
+    """
+    new_params = current_params.copy()
+    mutated_params = set()
+    
+    # Apply VLM suggestions
+    for param_name, suggestion in vlm_suggestions.items():
+        if param_name not in PARAM_BOUNDS:
+            # Try to find a matching param (handle aliases)
+            matching = [p for p in PARAM_BOUNDS if param_name.replace("_", "") in p.replace("_", "")]
+            if matching:
+                param_name = matching[0]
+            else:
+                continue
+        
+        bounds = PARAM_BOUNDS[param_name]
+        current_val = current_params.get(param_name)
+        
+        if current_val is None:
+            # Initialize with midpoint
+            current_val = (bounds.min_val + bounds.max_val) / 2
+        
+        direction, magnitude = parse_suggestion(suggestion)
+        magnitude *= mutation_strength
+        
+        if direction != "none":
+            new_params[param_name] = mutate_single_param(
+                param_name, current_val, direction, magnitude, bounds
+            )
+            mutated_params.add(param_name)
+    
+    # Random exploration on high-impact params not touched by VLM
+    if random.random() < exploration_rate:
+        # Prefer high-impact params for exploration
+        candidates = [p for p in HIGH_IMPACT_PARAMS if p not in mutated_params and p in PARAM_BOUNDS]
+        if not candidates:
+            candidates = [p for p in PARAM_BOUNDS if p not in mutated_params]
+        
+        if candidates:
+            param = random.choice(candidates)
+            bounds = PARAM_BOUNDS[param]
+            current = current_params.get(param, (bounds.min_val + bounds.max_val) / 2)
+            
+            # Random direction
+            direction = random.choice(["increase", "decrease"])
+            magnitude = random.uniform(0.5, 1.5) * mutation_strength
+            
+            new_params[param] = mutate_single_param(
+                param, current, direction, magnitude, bounds
+            )
+    
+    return new_params
+
+
+def random_mutation(current_params: dict, num_mutations: int = 3) -> dict:
+    """
+    Apply random mutations to a few parameters.
+    Used when VLM doesn't provide useful suggestions.
+    """
+    new_params = current_params.copy()
+    
+    # Weight towards high-impact params
+    all_params = HIGH_IMPACT_PARAMS * 3 + MEDIUM_IMPACT_PARAMS * 2 + LOW_IMPACT_PARAMS
+    params_to_mutate = random.sample(all_params, min(num_mutations, len(all_params)))
+    
+    for param in params_to_mutate:
+        if param not in PARAM_BOUNDS:
+            continue
+            
+        bounds = PARAM_BOUNDS[param]
+        current = current_params.get(param, (bounds.min_val + bounds.max_val) / 2)
+        
+        direction = random.choice(["increase", "decrease"])
+        magnitude = random.uniform(0.3, 1.2)
+        
+        new_params[param] = mutate_single_param(
+            param, current, direction, magnitude, bounds
+        )
+    
+    return new_params
+
+
+def get_param_info(param_name: str) -> Optional[dict]:
+    """Get information about a parameter."""
+    if param_name not in PARAM_BOUNDS:
+        return None
+    
+    bounds = PARAM_BOUNDS[param_name]
+    return {
+        "name": param_name,
+        "min": bounds.min_val,
+        "max": bounds.max_val,
+        "step": bounds.step,
+        "is_integer": bounds.is_integer,
+        "impact": (
+            "high" if param_name in HIGH_IMPACT_PARAMS else
+            "medium" if param_name in MEDIUM_IMPACT_PARAMS else
+            "low"
+        )
+    }
+
+
+def list_all_params() -> list[str]:
+    """Get list of all tunable parameter names."""
+    return sorted(PARAM_BOUNDS.keys())
+
+
+if __name__ == "__main__":
+    # Test mutation
+    test_params = {
+        "trunk_height": 6.0,
+        "trunk_radius": 0.5,
+        "branch_density": 2.0,
+        "branch_angle": 45.0,
+    }
+    
+    test_suggestions = {
+        "trunk_height": "increase by 20%",
+        "branch_density": -0.3,
+        "branch_angle": "decrease",
+    }
+    
+    new_params = mutate_parameters(test_params, test_suggestions)
+    
+    print("Original params:")
+    for k, v in test_params.items():
+        print(f"  {k}: {v}")
+    
+    print("\nSuggestions:")
+    for k, v in test_suggestions.items():
+        print(f"  {k}: {v}")
+    
+    print("\nMutated params:")
+    for k, v in new_params.items():
+        if k in test_params:
+            delta = v - test_params[k]
+            print(f"  {k}: {v:.3f} (delta: {delta:+.3f})")
+        else:
+            print(f"  {k}: {v:.3f} (new)")
