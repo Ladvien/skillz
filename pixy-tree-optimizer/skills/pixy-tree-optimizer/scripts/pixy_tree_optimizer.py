@@ -71,6 +71,10 @@ BASELINE_PRESETS = {
         "stiffness": 0.6,
         "crown_influence": 0.9,
         "crown_shape": 0,  # Spherical
+        "leaf_style": 0, "foliage_placement": 1, "leaf_orientation": 0,
+        "foliage_density": 4.0, "cluster_size": 5, "leaf_size": 0.35,
+        "leaf_size_variation": 0.15, "foliage_radius_threshold": 0.2,
+        "foliage_height_falloff": 0.25, "leaf_droop": 0.15, "leaf_rotation_variation": 0.6,
     },
     "pine": {
         "trunk_height": 8.0,
@@ -99,6 +103,10 @@ BASELINE_PRESETS = {
         "stiffness": 0.7,
         "crown_influence": 0.7,
         "crown_shape": 1,  # Conical
+        "leaf_style": 4, "foliage_placement": 1, "leaf_orientation": 1,
+        "foliage_density": 6.0, "cluster_size": 3, "leaf_size": 0.15,
+        "leaf_size_variation": 0.1, "foliage_radius_threshold": 0.1,
+        "foliage_height_falloff": 0.1, "leaf_droop": 0.3, "leaf_rotation_variation": 0.3,
     },
     "willow": {
         "trunk_height": 7.0,
@@ -127,6 +135,10 @@ BASELINE_PRESETS = {
         "stiffness": 0.2,
         "crown_influence": 0.6,
         "crown_shape": 7,  # Umbrella
+        "leaf_style": 1, "foliage_placement": 0, "leaf_orientation": 2,
+        "foliage_density": 5.0, "cluster_size": 2, "leaf_size": 0.2,
+        "leaf_size_variation": 0.2, "foliage_radius_threshold": 0.15,
+        "foliage_height_falloff": 0.4, "leaf_droop": 0.8, "leaf_rotation_variation": 0.5,
     },
     "birch": {
         "trunk_height": 7.0,
@@ -155,6 +167,10 @@ BASELINE_PRESETS = {
         "stiffness": 0.7,
         "crown_influence": 0.8,
         "crown_shape": 2,  # Hemispherical
+        "leaf_style": 0, "foliage_placement": 0, "leaf_orientation": 0,
+        "foliage_density": 3.5, "cluster_size": 4, "leaf_size": 0.25,
+        "leaf_size_variation": 0.2, "foliage_radius_threshold": 0.15,
+        "foliage_height_falloff": 0.3, "leaf_droop": 0.1, "leaf_rotation_variation": 0.7,
     },
     "dead": {
         "trunk_height": 5.0,
@@ -186,18 +202,41 @@ BASELINE_PRESETS = {
         "break_chance": 0.3,
         "trunk_twist": 15.0,
         "branch_twist": 20.0,
+        "leaf_style": 0, "foliage_placement": 0, "leaf_orientation": 0,
+        "foliage_density": 0.5, "cluster_size": 1, "leaf_size": 0.1,
+        "leaf_size_variation": 0.0, "foliage_radius_threshold": 1.0,
+        "foliage_height_falloff": 0.0, "leaf_droop": 0.0, "leaf_rotation_variation": 0.0,
     },
 }
 
 
-def load_baseline_preset(tree_type: str) -> dict:
-    """Load existing PixyTree preset as starting point."""
+STYLE_OVERRIDES = {
+    "low_poly": {
+        "radial_segments": 5,
+        "height_segments": 4,
+        "leaf_style": 2,           # ClusterSphere for rounded faceted clusters
+        "foliage_placement": 2,    # TipClusters
+        "leaf_size": 1.2,          # Large for chunky look (octahedrons ~0.48 units)
+        "cluster_size": 8,         # Enough to merge into solid blobs
+        "foliage_density": 3.5,
+        "branch_recursion": 1,
+        "sub_branch_count": 2,
+    },
+}
+
+
+def load_baseline_preset(tree_type: str, style: str = "") -> dict:
+    """Load existing PixyTree preset as starting point, with style overrides."""
     if tree_type in BASELINE_PRESETS:
-        return BASELINE_PRESETS[tree_type].copy()
-    
-    # Default to oak if unknown
-    print(f"Unknown tree type '{tree_type}', using oak as baseline")
-    return BASELINE_PRESETS["oak"].copy()
+        params = BASELINE_PRESETS[tree_type].copy()
+    else:
+        print(f"Unknown tree type '{tree_type}', using oak as baseline")
+        params = BASELINE_PRESETS["oak"].copy()
+
+    if style in STYLE_OVERRIDES:
+        params.update(STYLE_OVERRIDES[style])
+
+    return params
 
 
 def get_reference_images(config: OptimizationConfig) -> list[str]:
@@ -344,7 +383,7 @@ def run_optimization(config: OptimizationConfig) -> dict:
         return {}
     
     # Start from baseline preset
-    current_params = load_baseline_preset(config.tree_type)
+    current_params = load_baseline_preset(config.tree_type, config.style)
     state.best_params = current_params.copy()
     
     print(f"\n{'='*60}")
@@ -400,18 +439,24 @@ def run_optimization(config: OptimizationConfig) -> dict:
             tree_type=config.tree_type
         )
         
+        # Skip failed VLM evaluations entirely
+        if evaluation.get("vlm_failed", False):
+            print("VLM unavailable, skipping iteration (keeping current params)")
+            time.sleep(10)  # Back off before retrying
+            continue
+
         score = evaluation.get("overall_score", 0)
         scores = evaluation.get("scores", {})
         issues = evaluation.get("issues", [])
         suggestions = evaluation.get("parameter_suggestions", {})
-        
+
         print(f"Score: {score:.1f}/10")
         print(f"  Silhouette: {scores.get('silhouette', '?')}")
         print(f"  Branching:  {scores.get('branching', '?')}")
         print(f"  Trunk:      {scores.get('trunk', '?')}")
         print(f"  Foliage:    {scores.get('foliage', '?')}")
         print(f"  Style:      {scores.get('style_match', '?')}")
-        
+
         if issues:
             print(f"Issues: {issues[:3]}")
         

@@ -50,6 +50,13 @@ Be specific in parameter_suggestions. Use actual parameter names like:
 - crown_influence, gravity_strength, up_attraction
 - sub_branch_count, branch_recursion, phyllotaxis_angle
 - apical_dominance, branch_flatness, trunk_flare
+- leaf_style (0=CrossedPlanes, 1=SingleQuad, 2=ClusterSphere, 3=StarBurst, 4=NeedleCluster)
+- foliage_placement (0=TerminalBranches, 1=AllBranches, 2=TipClusters)
+- foliage_density, cluster_size, leaf_size
+- leaf_droop, foliage_radius_threshold, foliage_height_falloff
+
+For enum parameters (leaf_style, foliage_placement, crown_shape, trunk_termination),
+suggest the exact numeric value (e.g., 2) rather than "increase"/"decrease".
 
 Focus on the most impactful 3-5 parameters to adjust.
 """
@@ -61,6 +68,8 @@ LOW-POLY STYLE CHARACTERISTICS:
 - Geometric, faceted appearance with visible polygon edges
 - Flat or vertex-colored shading, minimal texture detail
 - Clean silhouettes, simplified branching
+- Foliage should be LARGE rounded geometric clusters (octahedrons/icospheres)
+- Best achieved with leaf_style=2 (ClusterSphere) and foliage_placement=2 (TipClusters)
 - Examples: Firewatch, Astroneer, Monument Valley trees
 """,
     "realistic": """
@@ -214,19 +223,46 @@ def evaluate_tree(
         
     except Exception as e:
         print(f"VLM evaluation failed: {e}")
-        return {
-            "scores": {
-                "silhouette": 5, 
-                "branching": 5, 
-                "trunk": 5, 
-                "foliage": 5, 
-                "style_match": 5
-            },
-            "overall_score": 5,
-            "matches_well": False,
-            "issues": [f"VLM call failed: {str(e)}"],
-            "parameter_suggestions": {}
-        }
+        # Retry once after a delay
+        import time
+        time.sleep(5)
+        try:
+            response = chat(
+                model=model,
+                messages=[{
+                    'role': 'user',
+                    'content': prompt,
+                    'images': all_images
+                }]
+            )
+            result = parse_vlm_response(response.message.content)
+            scores = result.get("scores", {})
+            for key in ["silhouette", "branching", "trunk", "foliage", "style_match"]:
+                if key not in scores:
+                    scores[key] = 5
+                scores[key] = max(1, min(10, int(scores[key])))
+            if "overall_score" not in result:
+                result["overall_score"] = sum(scores.values()) / len(scores)
+            overall = result.get("overall_score", 5)
+            all_above_7 = all(s >= 7 for s in scores.values())
+            result["matches_well"] = overall >= 8 and all_above_7
+            return result
+        except Exception as e2:
+            print(f"VLM retry also failed: {e2}")
+            return {
+                "scores": {
+                    "silhouette": 0,
+                    "branching": 0,
+                    "trunk": 0,
+                    "foliage": 0,
+                    "style_match": 0
+                },
+                "overall_score": 0,
+                "matches_well": False,
+                "vlm_failed": True,
+                "issues": [f"VLM call failed: {str(e2)}"],
+                "parameter_suggestions": {}
+            }
 
 
 def describe_tree(image_path: str, model: str = 'qwen3-vl:235b-cloud') -> str:

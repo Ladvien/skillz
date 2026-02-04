@@ -80,7 +80,20 @@ PARAM_BOUNDS = {
     "crown_shape": ParameterBounds(0, 8, 1, is_integer=True),
     "crown_influence": ParameterBounds(0.0, 1.0, 0.05),
     "crown_radius": ParameterBounds(0.5, 3.0, 0.1),
-    
+
+    # ========== FOLIAGE (11 params) ==========
+    "leaf_style": ParameterBounds(0, 4, 1, is_integer=True),        # 0=CrossedPlanes 1=SingleQuad 2=ClusterSphere 3=StarBurst 4=NeedleCluster
+    "foliage_placement": ParameterBounds(0, 2, 1, is_integer=True), # 0=TerminalBranches 1=AllBranches 2=TipClusters
+    "leaf_orientation": ParameterBounds(0, 3, 1, is_integer=True),  # 0=RadialOutward 1=FollowBranch 2=RandomUpward 3=HorizontalSpread
+    "foliage_density": ParameterBounds(0.5, 10.0, 0.1),
+    "cluster_size": ParameterBounds(1, 12, 1, is_integer=True),
+    "leaf_size": ParameterBounds(0.05, 2.0, 0.05),
+    "leaf_size_variation": ParameterBounds(0.0, 0.5, 0.02),
+    "foliage_radius_threshold": ParameterBounds(0.0, 1.0, 0.05),
+    "foliage_height_falloff": ParameterBounds(0.0, 1.0, 0.05),
+    "leaf_droop": ParameterBounds(0.0, 1.0, 0.05),
+    "leaf_rotation_variation": ParameterBounds(0.0, 1.0, 0.05),
+
     # ========== FLOOR & COLLAR (4 params) ==========
     # floor_avoidance is bool
     "floor_level": ParameterBounds(-1.0, 1.0, 0.05),
@@ -114,6 +127,8 @@ HIGH_IMPACT_PARAMS = [
     "crown_influence", "crown_shape",
     "gravity_strength", "up_attraction",
     "branch_recursion", "sub_branch_count",
+    "leaf_style", "foliage_placement", "leaf_size",
+    "cluster_size", "foliage_density",
 ]
 
 MEDIUM_IMPACT_PARAMS = [
@@ -121,12 +136,15 @@ MEDIUM_IMPACT_PARAMS = [
     "phyllotaxis_angle", "apical_dominance",
     "trunk_flare", "branch_randomness",
     "sub_branch_scale", "stiffness",
+    "foliage_radius_threshold", "foliage_height_falloff",
+    "leaf_droop", "leaf_orientation",
 ]
 
 LOW_IMPACT_PARAMS = [
     "trunk_randomness", "branch_twist", "trunk_twist",
     "root_flare_count", "radial_segments", "height_segments",
     "branch_collar_length", "leader_length",
+    "leaf_size_variation", "leaf_rotation_variation",
 ]
 
 
@@ -187,7 +205,10 @@ def mutate_single_param(
     Apply a mutation to a single parameter.
     """
     param_range = bounds.max_val - bounds.min_val
-    step_size = bounds.step * param_range * magnitude
+    if bounds.is_integer:
+        step_size = bounds.step * magnitude
+    else:
+        step_size = bounds.step * param_range * magnitude
     
     # Add some noise for exploration
     noise = random.gauss(0, step_size * 0.2)
@@ -211,6 +232,15 @@ def mutate_single_param(
     return new_val
 
 
+PARAM_ALIASES = {
+    "foliage_cluster_size": "cluster_size",
+    "foliage_leaf_size": "leaf_size",
+    "foliage_style": "leaf_style",
+    "leaf_geometry": "leaf_style",
+    "leaf_placement": "foliage_placement",
+}
+
+
 def mutate_parameters(
     current_params: dict,
     vlm_suggestions: dict,
@@ -219,28 +249,32 @@ def mutate_parameters(
 ) -> dict:
     """
     Apply VLM-suggested mutations with some random exploration.
-    
+
     Args:
         current_params: Current parameter values
         vlm_suggestions: Dict of param_name -> suggestion from VLM
         exploration_rate: Probability of random mutation on unexplored params
         mutation_strength: Multiplier for mutation magnitude (0.5 = half step, 2.0 = double step)
-    
+
     Returns:
         New parameter dict with mutations applied
     """
     new_params = current_params.copy()
     mutated_params = set()
-    
+
     # Apply VLM suggestions
     for param_name, suggestion in vlm_suggestions.items():
         if param_name not in PARAM_BOUNDS:
-            # Try to find a matching param (handle aliases)
-            matching = [p for p in PARAM_BOUNDS if param_name.replace("_", "") in p.replace("_", "")]
-            if matching:
-                param_name = matching[0]
+            # Check explicit aliases first
+            if param_name in PARAM_ALIASES:
+                param_name = PARAM_ALIASES[param_name]
             else:
-                continue
+                # Fuzzy match fallback
+                matching = [p for p in PARAM_BOUNDS if param_name.replace("_", "") in p.replace("_", "")]
+                if matching:
+                    param_name = matching[0]
+                else:
+                    continue
         
         bounds = PARAM_BOUNDS[param_name]
         current_val = current_params.get(param_name)
@@ -342,23 +376,23 @@ if __name__ == "__main__":
         "branch_density": 2.0,
         "branch_angle": 45.0,
     }
-    
+
     test_suggestions = {
         "trunk_height": "increase by 20%",
         "branch_density": -0.3,
         "branch_angle": "decrease",
     }
-    
+
     new_params = mutate_parameters(test_params, test_suggestions)
-    
+
     print("Original params:")
     for k, v in test_params.items():
         print(f"  {k}: {v}")
-    
+
     print("\nSuggestions:")
     for k, v in test_suggestions.items():
         print(f"  {k}: {v}")
-    
+
     print("\nMutated params:")
     for k, v in new_params.items():
         if k in test_params:
@@ -366,3 +400,28 @@ if __name__ == "__main__":
             print(f"  {k}: {v:.3f} (delta: {delta:+.3f})")
         else:
             print(f"  {k}: {v:.3f} (new)")
+
+    # Test integer parameter mutation (regression test for oscillation bug)
+    print("\n--- Integer mutation tests ---")
+    random.seed(42)  # Deterministic for testing
+    int_tests = [
+        ("leaf_style", 2, "increase", 1.0, 3),
+        ("cluster_size", 5, "increase", 1.0, 6),
+        ("branch_recursion", 1, "decrease", 1.0, 0),
+        ("radial_segments", 8, "increase", 1.0, 9),
+        ("crown_shape", 4, "decrease", 1.0, 3),
+    ]
+    all_passed = True
+    for param, current, direction, magnitude, expected in int_tests:
+        random.seed(42)
+        bounds = PARAM_BOUNDS[param]
+        result = mutate_single_param(param, current, direction, magnitude, bounds)
+        status = "PASS" if result == expected else "FAIL"
+        if result != expected:
+            all_passed = False
+        print(f"  {status}: {param}={current} {direction} -> {result} (expected {expected})")
+
+    if all_passed:
+        print("All integer mutation tests passed!")
+    else:
+        print("WARNING: Some integer mutation tests failed!")
