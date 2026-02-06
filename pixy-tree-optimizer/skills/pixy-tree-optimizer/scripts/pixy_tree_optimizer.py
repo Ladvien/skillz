@@ -214,9 +214,9 @@ STYLE_OVERRIDES = {
     "low_poly": {
         "radial_segments": 5,
         "height_segments": 4,
-        "leaf_style": 2,           # ClusterSphere for rounded faceted clusters
+        "leaf_style": 5,           # Icosphere for rounded low-poly blobs
         "foliage_placement": 2,    # TipClusters
-        "leaf_size": 1.2,          # Large for chunky look (octahedrons ~0.48 units)
+        "leaf_size": 1.2,          # Large for chunky look
         "cluster_size": 8,         # Enough to merge into solid blobs
         "foliage_density": 3.5,
         "branch_recursion": 1,
@@ -236,7 +236,138 @@ def load_baseline_preset(tree_type: str, style: str = "") -> dict:
     if style in STYLE_OVERRIDES:
         params.update(STYLE_OVERRIDES[style])
 
+    # CRITICAL: Set preset=0 (Custom) so Godot doesn't override individual
+    # properties with built-in preset values during generate().
+    # Without this, the Oak preset forces leaf_style=0 (CrossedPlanes)
+    # regardless of what we set.
+    params["preset"] = 0
+
     return params
+
+
+# ========== Self-Evolution: Learning System ==========
+
+def get_learnings_path(output_dir: str, tree_type: str, style: str) -> Path:
+    """Path to the learnings file for a tree/style combo."""
+    return Path(output_dir) / f"learnings_{tree_type}_{style}.json"
+
+
+def load_learnings(output_dir: str, tree_type: str, style: str) -> dict:
+    """Load accumulated learnings from previous runs."""
+    path = get_learnings_path(output_dir, tree_type, style)
+    if path.exists():
+        with open(path) as f:
+            return json.load(f)
+    return {
+        "runs": 0,
+        "best_score_ever": 0.0,
+        "best_params_ever": {},
+        "effective_changes": [],    # Changes that improved score
+        "harmful_changes": [],      # Changes that degraded score
+        "persistent_issues": [],    # Issues reported in 3+ iterations
+        "vlm_insights": [],         # Key insights from VLM feedback
+    }
+
+
+def save_learnings(output_dir: str, tree_type: str, style: str, learnings: dict):
+    """Save learnings for future runs."""
+    Path(output_dir).mkdir(parents=True, exist_ok=True)
+    path = get_learnings_path(output_dir, tree_type, style)
+    with open(path, "w") as f:
+        json.dump(learnings, f, indent=2)
+    print(f"Learnings saved to: {path}")
+
+
+def update_learnings(learnings: dict, history: list, best_params: dict, best_score: float) -> dict:
+    """Analyze optimization history and update learnings."""
+    learnings["runs"] += 1
+
+    if best_score > learnings.get("best_score_ever", 0):
+        learnings["best_score_ever"] = best_score
+        learnings["best_params_ever"] = best_params.copy()
+
+    # Track which parameter changes improved/degraded scores
+    for i in range(1, len(history)):
+        prev = history[i - 1]
+        curr = history[i]
+        score_delta = curr["score"] - prev["score"]
+
+        # Find what changed
+        changed = {}
+        for key in curr["params"]:
+            prev_val = prev["params"].get(key)
+            curr_val = curr["params"].get(key)
+            if prev_val != curr_val and prev_val is not None:
+                changed[key] = {"from": prev_val, "to": curr_val, "score_delta": score_delta}
+
+        if score_delta > 0:
+            for key, info in changed.items():
+                learnings["effective_changes"].append({
+                    "param": key,
+                    "from": info["from"],
+                    "to": info["to"],
+                    "score_improvement": score_delta
+                })
+        elif score_delta < 0:
+            for key, info in changed.items():
+                learnings["harmful_changes"].append({
+                    "param": key,
+                    "from": info["from"],
+                    "to": info["to"],
+                    "score_degradation": score_delta
+                })
+
+    # Track persistent issues (appeared in 3+ iterations)
+    issue_counts = {}
+    for entry in history:
+        for issue in entry.get("issues", []):
+            # Normalize issue text for grouping
+            key = issue.lower()[:60]
+            issue_counts[key] = issue_counts.get(key, 0) + 1
+
+    persistent = [issue for issue, count in issue_counts.items() if count >= 3]
+    if persistent:
+        learnings["persistent_issues"] = persistent[-10:]  # Keep last 10
+
+    # Trim to prevent unbounded growth
+    learnings["effective_changes"] = learnings["effective_changes"][-30:]
+    learnings["harmful_changes"] = learnings["harmful_changes"][-30:]
+
+    return learnings
+
+
+def format_learnings_for_vlm(learnings: dict) -> str:
+    """Format learnings as context for the VLM prompt."""
+    if learnings["runs"] == 0:
+        return ""
+
+    lines = [f"\nLEARNINGS FROM {learnings['runs']} PREVIOUS RUN(S):"]
+    lines.append(f"Best score ever achieved: {learnings['best_score_ever']}/10")
+
+    if learnings.get("effective_changes"):
+        lines.append("\nChanges that IMPROVED scores:")
+        seen = set()
+        for change in learnings["effective_changes"][-5:]:
+            key = change["param"]
+            if key not in seen:
+                lines.append(f"  {key}: {change['from']} -> {change['to']} (+{change['score_improvement']})")
+                seen.add(key)
+
+    if learnings.get("harmful_changes"):
+        lines.append("\nChanges that DEGRADED scores (AVOID):")
+        seen = set()
+        for change in learnings["harmful_changes"][-5:]:
+            key = change["param"]
+            if key not in seen:
+                lines.append(f"  {key}: {change['from']} -> {change['to']} ({change['score_degradation']})")
+                seen.add(key)
+
+    if learnings.get("persistent_issues"):
+        lines.append("\nPersistent unresolved issues:")
+        for issue in learnings["persistent_issues"][-3:]:
+            lines.append(f"  - {issue}")
+
+    return "\n".join(lines)
 
 
 def get_reference_images(config: OptimizationConfig) -> list[str]:
@@ -374,16 +505,24 @@ def run_optimization(config: OptimizationConfig) -> dict:
     Returns: Final optimized parameters
     """
     state = OptimizationState()
-    
+
+    # Load learnings from previous runs
+    learnings = load_learnings(config.output_dir, config.tree_type, config.style)
+    learnings_context = format_learnings_for_vlm(learnings)
+
     # Load reference images
     try:
         reference_images = get_reference_images(config)
     except FileNotFoundError as e:
         print(f"ERROR: {e}")
         return {}
-    
-    # Start from baseline preset
-    current_params = load_baseline_preset(config.tree_type, config.style)
+
+    # Start from best known params if we have them, otherwise baseline
+    if learnings.get("best_params_ever") and learnings.get("best_score_ever", 0) > 0:
+        current_params = learnings["best_params_ever"].copy()
+        print(f"Resuming from best previous params (score: {learnings['best_score_ever']})")
+    else:
+        current_params = load_baseline_preset(config.tree_type, config.style)
     state.best_params = current_params.copy()
     
     print(f"\n{'='*60}")
@@ -427,7 +566,7 @@ def run_optimization(config: OptimizationConfig) -> dict:
         
         if not generated_images:
             print("No screenshots captured, using random mutation")
-            current_params = random_mutation(current_params)
+            current_params = random_mutation(current_params, style=config.style)
             continue
         
         # VLM evaluation
@@ -436,7 +575,9 @@ def run_optimization(config: OptimizationConfig) -> dict:
             generated_images=generated_images,
             reference_images=reference_images,
             style=config.style,
-            tree_type=config.tree_type
+            tree_type=config.tree_type,
+            current_params=current_params,
+            learnings_context=learnings_context
         )
         
         # Skip failed VLM evaluations entirely
@@ -504,11 +645,12 @@ def run_optimization(config: OptimizationConfig) -> dict:
                 current_params,
                 suggestions,
                 exploration_rate=config.exploration_rate,
-                mutation_strength=config.mutation_strength
+                mutation_strength=config.mutation_strength,
+                style=config.style
             )
         else:
             print("No suggestions, random exploration")
-            current_params = random_mutation(current_params)
+            current_params = random_mutation(current_params, style=config.style)
     
     # Save results
     print(f"\n{'='*60}")
@@ -518,14 +660,18 @@ def run_optimization(config: OptimizationConfig) -> dict:
     print(f"{'='*60}\n")
     
     save_results(config, state)
-    
+
+    # Update and save learnings for next run
+    learnings = update_learnings(learnings, state.history, state.best_params, state.best_score)
+    save_learnings(config.output_dir, config.tree_type, config.style, learnings)
+
     # Generate Rust code
     rust_code = generate_rust_preset(state.best_params, config.tree_type, config.style)
     rust_path = Path(config.output_dir) / f"preset_{config.tree_type}_{config.style}.rs"
     with open(rust_path, "w") as f:
         f.write(rust_code)
     print(f"Rust preset saved to: {rust_path}")
-    
+
     return state.best_params
 
 

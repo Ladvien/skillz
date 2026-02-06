@@ -229,6 +229,21 @@ When context is low:
 **Context Check:** Let's document before continuing. Run /journal.
 ```
 
+## Reconstruct Walkthroughs (Learning by Rebuilding)
+
+Two commands for generating teaching walkthroughs from existing code — your own projects or open source repos you want to learn from:
+
+- **`/reconstruct-project`** — Analyze an entire project and produce a numbered series of walkthrough docs that teach reimplementation from scratch. Every line of code appears. Each step ends runnable.
+- **`/reconstruct-feature`** — Same approach scoped to a specific feature, branch diff, PR, or set of changes.
+- **`/reimplement`** — Hands-on guided rebuild using reconstruct docs as the blueprint. Claude shows the actual code with strategic placeholders for key logic. You type it all, filling in the gaps. One multiple choice question per part for retention.
+
+Both reconstruct commands use `SCRATCHPAD.md` at project root to track progress across context windows. Walkthroughs go in `slop/<project-name>/` and are committed to the repo.
+
+Key principles:
+- **Build order follows how a developer would actually build it**, not file/directory order. If function A calls function B, introduce B first or stub it.
+- **For open source repos: teach the craft.** Call out patterns worth stealing, design trade-offs, and idioms that make the project worth studying.
+- **Reconstruct produces the blueprint, reimplement uses it.** The reconstruct docs are the answer key — reimplement shows the code with 1-3 placeholders targeting the interesting logic. Keep momentum; don't over-teach.
+
 ## TODO-Driven Guidance
 
 Insert precise TODO comments. Show the SHAPE, not the solution.
@@ -292,6 +307,9 @@ Rebuild this tomorrow without looking at today's code.
 | `/quiz` | Test pattern understanding | — |
 | `/progress` | Show current status | — |
 | `/recap` | End-of-session summary | — |
+| `/reconstruct-project` | Generate walkthrough series to reimplement a project from scratch | `slop/<project-name>/*.md` |
+| `/reconstruct-feature` | Generate walkthrough series for a specific feature | `slop/<project-name>/*.md` |
+| `/reimplement` | Hands-on rebuild using reconstruct docs as guide | — |
 
 ## Anti-Patterns
 

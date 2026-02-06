@@ -82,7 +82,7 @@ PARAM_BOUNDS = {
     "crown_radius": ParameterBounds(0.5, 3.0, 0.1),
 
     # ========== FOLIAGE (11 params) ==========
-    "leaf_style": ParameterBounds(0, 4, 1, is_integer=True),        # 0=CrossedPlanes 1=SingleQuad 2=ClusterSphere 3=StarBurst 4=NeedleCluster
+    "leaf_style": ParameterBounds(0, 5, 1, is_integer=True),        # 0=CrossedPlanes 1=SingleQuad 2=ClusterSphere 3=StarBurst 4=NeedleCluster 5=Icosphere
     "foliage_placement": ParameterBounds(0, 2, 1, is_integer=True), # 0=TerminalBranches 1=AllBranches 2=TipClusters
     "leaf_orientation": ParameterBounds(0, 3, 1, is_integer=True),  # 0=RadialOutward 1=FollowBranch 2=RandomUpward 3=HorizontalSpread
     "foliage_density": ParameterBounds(0.5, 10.0, 0.1),
@@ -148,49 +148,97 @@ LOW_IMPACT_PARAMS = [
 ]
 
 
-def parse_suggestion(suggestion) -> tuple[str, float]:
+# Parameters that are enums - raw numeric values mean "set to this"
+ENUM_PARAMS = {
+    "leaf_style", "foliage_placement", "leaf_orientation",
+    "crown_shape", "trunk_termination", "preset",
+}
+
+
+def parse_suggestion(suggestion, param_name: str = "") -> tuple[str, float]:
     """
     Parse VLM suggestion into direction and magnitude.
     Returns: (direction, magnitude) where direction is "increase", "decrease", or "set"
+
+    For enum parameters, raw numbers are always treated as "set to this value".
+    For continuous parameters, raw numbers are treated as deltas.
+    String prefixes like "set:", "+", "-" override defaults.
     """
+    # Handle string suggestions with explicit prefixes
+    if isinstance(suggestion, str):
+        suggestion = suggestion.strip()
+
+        # Explicit "set:N" format
+        if suggestion.startswith("set:"):
+            try:
+                return ("set", float(suggestion[4:]))
+            except ValueError:
+                pass
+
+        # Explicit delta format "+N" or "-N"
+        if suggestion.startswith("+"):
+            try:
+                return ("increase", abs(float(suggestion)))
+            except ValueError:
+                pass
+        if suggestion.startswith("-"):
+            try:
+                return ("decrease", abs(float(suggestion)))
+            except ValueError:
+                pass
+
+        s = suggestion.lower()
+        if "increase" in s or "more" in s or "higher" in s:
+            words = s.split()
+            for word in words:
+                try:
+                    mag = float(word.replace("%", "").replace("+", ""))
+                    return ("increase", mag / 100 if mag > 1 else mag)
+                except ValueError:
+                    continue
+            return ("increase", 1.0)
+
+        elif "decrease" in s or "less" in s or "lower" in s or "reduce" in s:
+            words = s.split()
+            for word in words:
+                try:
+                    mag = float(word.replace("%", "").replace("-", ""))
+                    return ("decrease", mag / 100 if mag > 1 else mag)
+                except ValueError:
+                    continue
+            return ("decrease", 1.0)
+
+        # Try to parse as a direct value
+        try:
+            val = float(suggestion)
+            # For enums, always treat as "set"
+            if param_name in ENUM_PARAMS:
+                return ("set", val)
+            # For continuous params, treat as delta
+            if val > 0:
+                return ("increase", abs(val))
+            elif val < 0:
+                return ("decrease", abs(val))
+            return ("none", 0)
+        except ValueError:
+            pass
+
+        return ("none", 0)
+
+    # Handle numeric suggestions
     if isinstance(suggestion, (int, float)):
+        # For enum parameters, raw numbers always mean "set to this value"
+        if param_name in ENUM_PARAMS:
+            return ("set", float(suggestion))
+
+        # For continuous parameters, treat as delta
         if suggestion > 0:
             return ("increase", abs(suggestion))
         elif suggestion < 0:
             return ("decrease", abs(suggestion))
         else:
             return ("none", 0)
-    
-    suggestion = str(suggestion).lower().strip()
-    
-    if "increase" in suggestion or "more" in suggestion or "higher" in suggestion:
-        # Try to extract magnitude
-        words = suggestion.split()
-        for word in words:
-            try:
-                mag = float(word.replace("%", "").replace("+", ""))
-                return ("increase", mag / 100 if mag > 1 else mag)
-            except ValueError:
-                continue
-        return ("increase", 1.0)  # Default magnitude
-    
-    elif "decrease" in suggestion or "less" in suggestion or "lower" in suggestion or "reduce" in suggestion:
-        words = suggestion.split()
-        for word in words:
-            try:
-                mag = float(word.replace("%", "").replace("-", ""))
-                return ("decrease", mag / 100 if mag > 1 else mag)
-            except ValueError:
-                continue
-        return ("decrease", 1.0)
-    
-    # Try to parse as a direct value
-    try:
-        val = float(suggestion)
-        return ("set", val)
-    except ValueError:
-        pass
-    
+
     return ("none", 0)
 
 
@@ -241,11 +289,45 @@ PARAM_ALIASES = {
 }
 
 
+# Style constraints: parameters that should NOT be mutated away from these values
+# These are known-correct for the given art style
+STYLE_CONSTRAINTS = {
+    "low_poly": {
+        "preset": 0,               # Custom - MUST be 0 or Godot preset overrides our params
+        "leaf_style": 5,           # Icosphere - subdivided icosahedron for rounded low-poly blobs
+        "foliage_placement": 2,    # TipClusters - rounded blobs at branch tips
+        "radial_segments": 5,      # Low poly count
+        "height_segments": 4,      # Low poly count
+    },
+    "realistic": {
+        "leaf_style": 0,           # CrossedPlanes for realistic foliage
+        "foliage_placement": 1,    # AllBranches for natural distribution
+    },
+    "cartoon": {
+        "leaf_style": 2,           # ClusterSphere for bold shapes
+        "foliage_placement": 2,    # TipClusters for exaggerated blobs
+    },
+    "pixel_art": {
+        "leaf_style": 0,           # CrossedPlanes for blocky look
+        "radial_segments": 4,      # Minimal segments
+        "height_segments": 3,
+    },
+    "anime": {
+        "leaf_style": 2,           # ClusterSphere for soft rounded shapes
+        "foliage_placement": 2,    # TipClusters
+    },
+    "dead": {
+        "foliage_density": 0.0,    # No foliage
+    },
+}
+
+
 def mutate_parameters(
     current_params: dict,
     vlm_suggestions: dict,
     exploration_rate: float = 0.2,
-    mutation_strength: float = 1.0
+    mutation_strength: float = 1.0,
+    style: str = ""
 ) -> dict:
     """
     Apply VLM-suggested mutations with some random exploration.
@@ -255,12 +337,14 @@ def mutate_parameters(
         vlm_suggestions: Dict of param_name -> suggestion from VLM
         exploration_rate: Probability of random mutation on unexplored params
         mutation_strength: Multiplier for mutation magnitude (0.5 = half step, 2.0 = double step)
+        style: Target art style for constraint pinning
 
     Returns:
         New parameter dict with mutations applied
     """
     new_params = current_params.copy()
     mutated_params = set()
+    constraints = STYLE_CONSTRAINTS.get(style, {})
 
     # Apply VLM suggestions
     for param_name, suggestion in vlm_suggestions.items():
@@ -275,71 +359,92 @@ def mutate_parameters(
                     param_name = matching[0]
                 else:
                     continue
-        
+
+        # Skip constrained parameters unless VLM suggests the constrained value
+        if param_name in constraints:
+            direction, magnitude = parse_suggestion(suggestion, param_name)
+            if direction == "set" and magnitude == constraints[param_name]:
+                # VLM agrees with constraint, keep it
+                new_params[param_name] = constraints[param_name]
+            # Otherwise skip - don't mutate pinned params
+            mutated_params.add(param_name)
+            continue
+
         bounds = PARAM_BOUNDS[param_name]
         current_val = current_params.get(param_name)
-        
+
         if current_val is None:
             # Initialize with midpoint
             current_val = (bounds.min_val + bounds.max_val) / 2
-        
-        direction, magnitude = parse_suggestion(suggestion)
+
+        direction, magnitude = parse_suggestion(suggestion, param_name)
         magnitude *= mutation_strength
-        
+
         if direction != "none":
             new_params[param_name] = mutate_single_param(
                 param_name, current_val, direction, magnitude, bounds
             )
             mutated_params.add(param_name)
-    
+
     # Random exploration on high-impact params not touched by VLM
     if random.random() < exploration_rate:
-        # Prefer high-impact params for exploration
-        candidates = [p for p in HIGH_IMPACT_PARAMS if p not in mutated_params and p in PARAM_BOUNDS]
+        # Prefer high-impact params for exploration, exclude constrained
+        candidates = [p for p in HIGH_IMPACT_PARAMS
+                      if p not in mutated_params and p in PARAM_BOUNDS and p not in constraints]
         if not candidates:
-            candidates = [p for p in PARAM_BOUNDS if p not in mutated_params]
-        
+            candidates = [p for p in PARAM_BOUNDS if p not in mutated_params and p not in constraints]
+
         if candidates:
             param = random.choice(candidates)
             bounds = PARAM_BOUNDS[param]
             current = current_params.get(param, (bounds.min_val + bounds.max_val) / 2)
-            
+
             # Random direction
             direction = random.choice(["increase", "decrease"])
             magnitude = random.uniform(0.5, 1.5) * mutation_strength
-            
+
             new_params[param] = mutate_single_param(
                 param, current, direction, magnitude, bounds
             )
-    
+
+    # Enforce constraints as final step (safety net)
+    for param_name, value in constraints.items():
+        new_params[param_name] = value
+
     return new_params
 
 
-def random_mutation(current_params: dict, num_mutations: int = 3) -> dict:
+def random_mutation(current_params: dict, num_mutations: int = 3, style: str = "") -> dict:
     """
     Apply random mutations to a few parameters.
     Used when VLM doesn't provide useful suggestions.
     """
     new_params = current_params.copy()
-    
-    # Weight towards high-impact params
-    all_params = HIGH_IMPACT_PARAMS * 3 + MEDIUM_IMPACT_PARAMS * 2 + LOW_IMPACT_PARAMS
+    constraints = STYLE_CONSTRAINTS.get(style, {})
+
+    # Weight towards high-impact params, exclude constrained
+    all_params = [p for p in HIGH_IMPACT_PARAMS * 3 + MEDIUM_IMPACT_PARAMS * 2 + LOW_IMPACT_PARAMS
+                  if p not in constraints]
     params_to_mutate = random.sample(all_params, min(num_mutations, len(all_params)))
-    
+
     for param in params_to_mutate:
         if param not in PARAM_BOUNDS:
             continue
-            
+
         bounds = PARAM_BOUNDS[param]
         current = current_params.get(param, (bounds.min_val + bounds.max_val) / 2)
-        
+
         direction = random.choice(["increase", "decrease"])
         magnitude = random.uniform(0.3, 1.2)
-        
+
         new_params[param] = mutate_single_param(
             param, current, direction, magnitude, bounds
         )
-    
+
+    # Enforce constraints
+    for param_name, value in constraints.items():
+        new_params[param_name] = value
+
     return new_params
 
 
@@ -425,3 +530,30 @@ if __name__ == "__main__":
         print("All integer mutation tests passed!")
     else:
         print("WARNING: Some integer mutation tests failed!")
+
+    # Test enum "set" behavior (regression test for set-vs-delta bug)
+    print("\n--- Enum set-vs-delta tests ---")
+    enum_tests = [
+        # (param_name, suggestion_value, expected_direction, expected_magnitude)
+        ("leaf_style", 2, "set", 2.0),      # raw int for enum -> set
+        ("leaf_style", "set:2", "set", 2.0), # explicit set prefix
+        ("foliage_placement", 0, "set", 0.0),# raw 0 for enum -> set to 0
+        ("crown_shape", 3, "set", 3.0),      # raw int for enum -> set
+        ("trunk_height", 2.0, "increase", 2.0),  # raw float for non-enum -> delta
+        ("trunk_height", -0.5, "decrease", 0.5),  # negative for non-enum -> decrease
+        ("leaf_style", "increase", "increase", 1.0),  # explicit direction still works
+    ]
+    all_passed = True
+    for param, suggestion, exp_dir, exp_mag in enum_tests:
+        got_dir, got_mag = parse_suggestion(suggestion, param)
+        ok = got_dir == exp_dir and abs(got_mag - exp_mag) < 0.01
+        status = "PASS" if ok else "FAIL"
+        if not ok:
+            all_passed = False
+        print(f"  {status}: parse_suggestion({suggestion!r}, '{param}') -> ({got_dir}, {got_mag}) "
+              f"(expected ({exp_dir}, {exp_mag}))")
+
+    if all_passed:
+        print("All enum set-vs-delta tests passed!")
+    else:
+        print("WARNING: Some enum tests failed!")

@@ -14,13 +14,16 @@ COMPARISON_PROMPT = """You are evaluating a procedurally generated 3D tree again
 TARGET STYLE: {style}
 TREE TYPE: {tree_type}
 
+CURRENT PARAMETER VALUES:
+{current_params}
+
 Compare the generated tree screenshot(s) to the reference image(s).
 
 Evaluate these aspects (score 1-10 each):
 1. SILHOUETTE: Does the overall shape match? Crown form, branch spread, height/width ratio
 2. BRANCHING: Branch density, angles, distribution, sub-branch patterns
 3. TRUNK: Proportions, taper, texture/color impression
-4. FOLIAGE: Density, placement, color (if applicable)
+4. FOLIAGE: Density, placement, leaf geometry style, color
 5. STYLE_MATCH: Does it capture the target art style aesthetic?
 
 Return ONLY valid JSON:
@@ -39,26 +42,32 @@ Return ONLY valid JSON:
         "specific issue 2"
     ],
     "parameter_suggestions": {{
-        "param_name": <suggested_delta or "increase"/"decrease">,
+        "param_name": "<suggestion>",
         ...
     }}
 }}
 
-Be specific in parameter_suggestions. Use actual parameter names like:
-- branch_density, branch_angle, branch_length
-- trunk_height, trunk_radius, trunk_taper
-- crown_influence, gravity_strength, up_attraction
-- sub_branch_count, branch_recursion, phyllotaxis_angle
-- apical_dominance, branch_flatness, trunk_flare
-- leaf_style (0=CrossedPlanes, 1=SingleQuad, 2=ClusterSphere, 3=StarBurst, 4=NeedleCluster)
-- foliage_placement (0=TerminalBranches, 1=AllBranches, 2=TipClusters)
-- foliage_density, cluster_size, leaf_size
-- leaf_droop, foliage_radius_threshold, foliage_height_falloff
+PARAMETER SUGGESTION FORMAT - use these exact formats:
+- For enum params (leaf_style, foliage_placement, crown_shape, leaf_orientation, trunk_termination):
+  Use "set:N" where N is the target value. Example: "set:2"
+- For continuous/integer params: Use "+N" to increase or "-N" to decrease.
+  Example: "+0.2" or "-0.1" or "+2"
+- You can also use "increase" or "decrease" for vague directional changes.
 
-For enum parameters (leaf_style, foliage_placement, crown_shape, trunk_termination),
-suggest the exact numeric value (e.g., 2) rather than "increase"/"decrease".
+AVAILABLE ENUM VALUES:
+- leaf_style: 0=CrossedPlanes(two quads at 90deg), 1=SingleQuad(billboard), 2=ClusterSphere(octahedron), 3=StarBurst(three quads at 60deg), 4=NeedleCluster(6 thin radiating quads for pine), 5=Icosphere(subdivided icosahedron, rounded low-poly blob)
+- foliage_placement: 0=TerminalBranches(tips only), 1=AllBranches(distributed), 2=TipClusters(sphere clusters at endpoints)
+- crown_shape: 0=Spherical, 1=Conical, 2=Hemispherical, 3=Cylindrical, 4=TaperedCylindrical, 5=Flame, 6=Spreading, 7=Umbrella, 8=Irregular
+- leaf_orientation: 0=RadialOutward, 1=FollowBranch, 2=RandomUpward, 3=HorizontalSpread
 
-Focus on the most impactful 3-5 parameters to adjust.
+KEY CONTINUOUS PARAMETERS (with current value shown above):
+- trunk_height, trunk_radius, trunk_taper, trunk_flare
+- branch_density, branch_angle, branch_length, branch_start, branch_end
+- branch_recursion (int 0-4), sub_branch_count (int 0-5)
+- crown_influence (0-1), gravity_strength (0-1), up_attraction (-1 to 1)
+- foliage_density, cluster_size (int), leaf_size, leaf_droop
+
+Focus on the 3-5 most impactful parameters to change. Do NOT suggest parameters that are already at good values.
 """
 
 
@@ -154,31 +163,79 @@ def parse_vlm_response(content: str) -> dict:
         }
 
 
+DISPLAY_PARAMS = [
+    "trunk_height", "trunk_radius", "trunk_taper", "trunk_flare",
+    "branch_start", "branch_end", "branch_density", "branch_length",
+    "branch_angle", "branch_recursion", "sub_branch_count", "sub_branch_scale",
+    "crown_shape", "crown_influence", "gravity_strength", "up_attraction",
+    "leaf_style", "foliage_placement", "leaf_orientation",
+    "foliage_density", "cluster_size", "leaf_size", "leaf_droop",
+    "foliage_radius_threshold", "foliage_height_falloff",
+    "radial_segments", "height_segments", "stiffness",
+]
+
+ENUM_LABELS = {
+    "leaf_style": {0: "CrossedPlanes", 1: "SingleQuad", 2: "ClusterSphere", 3: "StarBurst", 4: "NeedleCluster", 5: "Icosphere"},
+    "foliage_placement": {0: "TerminalBranches", 1: "AllBranches", 2: "TipClusters"},
+    "crown_shape": {0: "Spherical", 1: "Conical", 2: "Hemispherical", 3: "Cylindrical",
+                    4: "TaperedCylindrical", 5: "Flame", 6: "Spreading", 7: "Umbrella", 8: "Irregular"},
+    "leaf_orientation": {0: "RadialOutward", 1: "FollowBranch", 2: "RandomUpward", 3: "HorizontalSpread"},
+}
+
+
+def format_current_params(params: dict) -> str:
+    """Format current parameters for VLM prompt."""
+    lines = []
+    for key in DISPLAY_PARAMS:
+        if key in params:
+            val = params[key]
+            label = ""
+            if key in ENUM_LABELS and isinstance(val, int):
+                label = f" ({ENUM_LABELS[key].get(val, '?')})"
+            if isinstance(val, float):
+                lines.append(f"  {key}: {val:.3f}")
+            else:
+                lines.append(f"  {key}: {val}{label}")
+    return "\n".join(lines)
+
+
 def evaluate_tree(
     generated_images: list[str],
     reference_images: list[str],
     style: str,
     tree_type: str,
+    current_params: dict = None,
+    learnings_context: str = "",
     model: str = 'qwen3-vl:235b-cloud'
 ) -> dict:
     """
     Send images to VLM for comparison evaluation.
-    
+
     Args:
         generated_images: Paths to screenshots of generated tree
         reference_images: Paths to reference images
         style: Target art style (low_poly, realistic, etc.)
         tree_type: Tree type (oak, pine, etc.)
+        current_params: Current parameter values (shown to VLM for context)
+        learnings_context: Formatted string of learnings from previous runs
         model: Ollama model to use
-        
+
     Returns:
         Evaluation dict with scores, issues, and suggestions
     """
+    # Format current params for display
+    params_str = format_current_params(current_params) if current_params else "  (not provided)"
+
     # Build prompt with style hints
     prompt = COMPARISON_PROMPT.format(
         style=style.replace("_", " ").title(),
-        tree_type=tree_type.title()
+        tree_type=tree_type.title(),
+        current_params=params_str
     )
+
+    # Add learnings from previous runs
+    if learnings_context:
+        prompt += "\n" + learnings_context
     
     # Add style-specific hints
     if style in STYLE_HINTS:
