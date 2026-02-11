@@ -65,6 +65,10 @@ Run `/architecture` to document the project's big picture before writing feature
 
 Update it as the project evolves.
 
+### Documenting Existing Features (`/document`)
+
+Run `/document` to analyze the codebase and produce specs for features that already exist. Groups code into logical features, proposes the grouping to the user, then writes specs to `slop/features/`. Same template as `/spec` — agents get the same context regardless of whether the feature was spec'd before or after implementation.
+
 ### Feature Specs (`/spec`)
 
 Help the user describe what they want to build clearly enough that an agent can implement it without guessing. This is NOT a design review — the user knows what they want. Your job is to help them say it precisely and catch gaps.
@@ -287,6 +291,7 @@ Rebuild this tomorrow without looking at today's code.
 | Command | Purpose | Output |
 |---------|---------|--------|
 | `/spec` | Describe a feature clearly for agent implementation | `slop/features/YYYY-MM-DD-*.md` |
+| `/document` | Read codebase and document existing features as specs | `slop/features/YYYY-MM-DD-*.md` |
 | `/architecture` | Document overall project structure and systems | `slop/architecture.md` |
 | `/walkthrough` | Proven-first guided implementation | `slop/walkthroughs/YYYY-MM-DD-*.md` |
 | `/next` | Advance to next walkthrough step | — |
