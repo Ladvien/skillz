@@ -8,7 +8,7 @@ Start a guided coding session using the guided-coding-mentor skill. The agent fi
 
 ## Phase 1: Setup
 
-1. Ask what the user wants to build
+1. Ask what the user wants to build (or reference a spec from `slop/features/`)
 2. Verify this is a git repository:
    ```bash
    git rev-parse --is-inside-work-tree

@@ -57,37 +57,24 @@ project_root/
         └── YYYY-MM-DD-session-description.md
 ```
 
-## The Design-First Workflow
+## The Spec-First Workflow
 
-### When to Design vs. When to Build
+### Architecture
 
-**Use `/design` when:**
-- Feature is non-trivial (> 1-2 hours of work)
-- Multiple approaches are possible
-- Trade-offs need to be thought through
-- User says "I want to build X" but hasn't articulated the problem
+Run `/architecture` to document the project's big picture before writing feature specs. This creates `slop/architecture.md` — a living doc that specs reference for shared context about systems, conventions, and structure.
 
-**Skip to `/walkthrough` when:**
-- Problem and solution are clear
-- Feature is small and well-understood
-- User has already designed it elsewhere
+Update it as the project evolves.
 
-### Design Phase (`/design`)
+### Feature Specs (`/spec`)
 
-Guide user through structured conversation:
+Help the user describe what they want to build clearly enough that an agent can implement it without guessing. This is NOT a design review — the user knows what they want. Your job is to help them say it precisely and catch gaps.
 
-1. **Problem Discovery** — What are we solving? Who has it? Why now?
-2. **Constraints & Scope** — Goals, non-goals, hard limits
-3. **Solution Exploration** — High-level approach
-4. **Alternatives** — What else could we do? Why not that?
-5. **Trade-offs & Risks** — What are we giving up?
-6. **Document** — Write `slop/features/YYYY-MM-DD-description.md`
-
-**Key behaviors:**
-- Push back on solution-first thinking ("That's a solution — what's the problem?")
-- Force alternatives exploration ("What's another way to do this?")
-- Name trade-offs explicitly ("You're optimizing for X at the cost of Y")
-- Keep it moving — not everything needs resolution in design phase
+**Behavior:**
+- Listen to what they want to build
+- Ask clarifying questions only about genuine gaps (boundaries, interfaces, behavior, constraints)
+- Batch questions — don't drip-feed across turns
+- Write the spec to `slop/features/YYYY-MM-DD-description.md`
+- Reference `slop/architecture.md` if it exists
 
 Output: `slop/features/YYYY-MM-DD-description.md`
 
@@ -96,16 +83,16 @@ Output: `slop/features/YYYY-MM-DD-description.md`
 The proven-first workflow:
 
 1. **Setup** — Verify git, create checkpoint
-2. **Plan** — Write implementation approach (reference design doc if exists)
+2. **Plan** — Write implementation approach (reference spec if exists)
 3. **Prove** — Agent builds and verifies it works
 4. **Document** — Write `slop/walkthroughs/YYYY-MM-DD-description.md`
 5. **Reset** — Return to checkpoint, preserve walkthrough doc
 6. **Guide** — User implements with TODO-driven guidance
 
-**Integration with design:**
-- Check for recent design doc in `slop/features/`
-- Reference design decisions in walkthrough
-- Link walkthrough back to design doc
+**Integration with specs:**
+- Check for relevant spec in `slop/features/`
+- Use the spec as the basis for the implementation plan
+- Link walkthrough back to spec
 
 ## The Proven-First Implementation Workflow
 
@@ -299,7 +286,8 @@ Rebuild this tomorrow without looking at today's code.
 
 | Command | Purpose | Output |
 |---------|---------|--------|
-| `/design` | Think through a feature before building | `slop/features/YYYY-MM-DD-*.md` |
+| `/spec` | Describe a feature clearly for agent implementation | `slop/features/YYYY-MM-DD-*.md` |
+| `/architecture` | Document overall project structure and systems | `slop/architecture.md` |
 | `/walkthrough` | Proven-first guided implementation | `slop/walkthroughs/YYYY-MM-DD-*.md` |
 | `/next` | Advance to next walkthrough step | — |
 | `/stuck` | Get escalating help | — |
@@ -315,13 +303,14 @@ Rebuild this tomorrow without looking at today's code.
 
 ❌ Write code for them during guidance phase (breaks muscle memory)
 ❌ Reference files without full paths
-❌ Skip the design phase for non-trivial features
+❌ Skip writing a spec for non-trivial features
 ❌ Skip the prove-it-first phase
 ❌ Let user struggle beyond 90 seconds
 ❌ Say "Great question!" (patronizing)
 ❌ Let valuable debugging sessions go undocumented
 ❌ Continue when context is low without prompting to journal
-❌ Accept first solution without exploring alternatives
+❌ Challenge whether the user should build a feature (during /spec)
+❌ Drag a simple spec into a Socratic dialogue
 
 For detailed patterns, see:
 - [references/teaching-patterns.md](references/teaching-patterns.md)
