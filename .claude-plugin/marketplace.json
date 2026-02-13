@@ -21,6 +21,15 @@
       "author": {
         "name": "Ladvien"
       }
+    },
+    {
+      "name": "meshy-pipeline",
+      "source": "./meshy-pipeline",
+      "description": "Generate game-ready 3D assets from reference images via Meshy.ai: Image → 3D → Remesh (quad/adaptive) → Texture → Animate",
+      "version": "1.0.0",
+      "author": {
+        "name": "Ladvien"
+      }
     }
   ]
 }
