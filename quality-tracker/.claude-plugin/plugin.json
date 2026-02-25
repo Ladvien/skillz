@@ -1,0 +1,8 @@
+{
+    "name": "quality-tracker",
+    "description": "Track user feedback on every code change with structured scores and qualitative notes. Self-improving: agent reads past feedback to avoid repeating mistakes. Supports rollback to last-known-good state.",
+    "version": "1.0.0",
+    "author": {
+        "name": "Ladvien"
+    }
+}

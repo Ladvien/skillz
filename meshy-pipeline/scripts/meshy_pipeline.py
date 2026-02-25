@@ -203,7 +203,7 @@ def step_image_to_3d(
     print("STEP 1: Image to 3D")
     print("=" * 60)
 
-    endpoint = "/openapi/v2/image-to-3d"
+    endpoint = "/openapi/v1/image-to-3d"
     headers = get_headers(api_key)
 
     body = {
@@ -322,7 +322,7 @@ def step_texture(
     print("STEP 3: Texture")
     print("=" * 60)
 
-    endpoint = "/openapi/v2/text-to-texture"
+    endpoint = "/openapi/v1/retexture"
     headers = get_headers(api_key)
 
     body = {
@@ -390,7 +390,7 @@ def step_animate(
         print("  No animations requested. Skipping.")
         return []
 
-    endpoint = "/openapi/v1/animate"
+    endpoint = "/openapi/v1/animations"
     headers = get_headers(api_key)
     results = []
 

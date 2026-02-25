@@ -30,6 +30,15 @@
       "author": {
         "name": "Ladvien"
       }
+    },
+    {
+      "name": "quality-tracker",
+      "source": "./quality-tracker",
+      "description": "Track user feedback on every code change with scores and qualitative notes tied to git commits. Self-improving agent reads past feedback. Supports rollback to last-known-good state.",
+      "version": "1.0.0",
+      "author": {
+        "name": "Ladvien"
+      }
     }
   ]
 }

@@ -30,20 +30,39 @@ import requests
 BASE_URL = "https://api.meshy.ai"
 
 ENDPOINTS = {
-    "image-to-3d": "/openapi/v2/image-to-3d",
+    "image-to-3d": "/openapi/v1/image-to-3d",
+    "multi-image-to-3d": "/openapi/v1/multi-image-to-3d",
+    "text-to-3d": "/openapi/v2/text-to-3d",
     "remesh": "/openapi/v1/remesh",
-    "texture": "/openapi/v2/text-to-texture",
-    "animate": "/openapi/v1/animate",
+    "retexture": "/openapi/v1/retexture",
+    "animations": "/openapi/v1/animations",
+    "rigging": "/openapi/v1/rigging",
+    "text-to-image": "/openapi/v1/text-to-image",
+    "image-to-image": "/openapi/v1/image-to-image",
+}
+
+# Endpoints that support the list (GET without :id) operation
+LISTABLE_ENDPOINTS = {
+    "image-to-3d", "multi-image-to-3d", "text-to-3d", "remesh",
+    "retexture", "text-to-image", "image-to-image",
+    # "animations" has NO list endpoint per Meshy docs
 }
 
 TYPE_ALIASES = {
     "mesh": "image-to-3d",
     "meshes": "image-to-3d",
     "3d": "image-to-3d",
+    "multi": "multi-image-to-3d",
+    "text3d": "text-to-3d",
     "remeshes": "remesh",
-    "textures": "texture",
-    "animations": "animate",
-    "anim": "animate",
+    "texture": "retexture",
+    "textures": "retexture",
+    "animate": "animations",
+    "anim": "animations",
+    "animation": "animations",
+    "rig": "rigging",
+    "img": "text-to-image",
+    "img2img": "image-to-image",
 }
 
 
@@ -57,6 +76,7 @@ def load_env_file(env_path=None):
     candidates.extend([
         Path.cwd() / ".env",
         Path(__file__).resolve().parent.parent / ".env",
+        Path.home() / "pixy" / "pixy_game" / ".env",
         Path.home() / ".env",
     ])
     for candidate in candidates:
@@ -120,7 +140,11 @@ def list_tasks(api_key, task_type, status_filter=None, page=1, page_size=20):
         print(f"Unknown type: {task_type}. Options: {', '.join(ENDPOINTS.keys())}")
         sys.exit(1)
 
-    params = {"page": page, "pageSize": page_size}
+    if task_type not in LISTABLE_ENDPOINTS:
+        print(f"WARNING: '{task_type}' does not have a list endpoint in the Meshy API.")
+        return [], 0
+
+    params = {"page_num": page, "page_size": min(page_size, 50), "sort_by": "-created_at"}
     if status_filter:
         params["status"] = status_filter.upper()
 
@@ -165,7 +189,7 @@ def cmd_list_meshes(args):
 
 def cmd_list_animations(args):
     api_key = get_api_key(args)
-    tasks, total = list_tasks(api_key, "animate", args.status, args.page, args.page_size)
+    tasks, total = list_tasks(api_key, "animations", args.status, args.page, args.page_size)
 
     print(f"\n{'='*80}")
     print(f"  Animations (page {args.page}, {len(tasks)} of {total} total)")
@@ -186,7 +210,7 @@ def cmd_list_animations(args):
 
 def cmd_list_textures(args):
     api_key = get_api_key(args)
-    tasks, total = list_tasks(api_key, "texture", args.status, args.page, args.page_size)
+    tasks, total = list_tasks(api_key, "retexture", args.status, args.page, args.page_size)
 
     print(f"\n{'='*80}")
     print(f"  Textures (page {args.page}, {len(tasks)} of {total} total)")
@@ -391,11 +415,11 @@ def cmd_retry(args):
         for key in ("input_model_url", "topology", "target_polycount", "target_formats"):
             if key in data:
                 body[key] = data[key]
-    elif ttype == "texture":
+    elif ttype == "retexture":
         for key in ("model_url", "object_prompt", "style_prompt", "art_style", "enable_pbr", "resolution"):
             if key in data:
                 body[key] = data[key]
-    elif ttype == "animate":
+    elif ttype == "animations":
         for key in ("input_model_url", "animation_prompt"):
             if key in data:
                 body[key] = data[key]
