@@ -39,6 +39,15 @@
       "author": {
         "name": "Ladvien"
       }
+    },
+    {
+      "name": "academic-research-hs",
+      "source": "./academic-research-hs",
+      "description": "Multi-agent academic research pipeline hard-wired to home-still: deep-research + academic-paper + academic-paper-reviewer + academic-pipeline orchestrator, with every literature search and integrity gate routed through the home-still local corpus first (distill_search, catalog_*, paper_get, paper_download) before web APIs.",
+      "version": "0.1.0",
+      "author": {
+        "name": "Ladvien"
+      }
     }
   ]
 }
