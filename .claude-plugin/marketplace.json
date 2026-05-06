@@ -14,37 +14,10 @@
       }
     },
     {
-      "name": "pixy-tree-optimizer",
-      "source": "./pixy-tree-optimizer",
-      "description": "VLM-guided optimization for PixyTree procedural tree presets using Ollama Cloud qwen-3vl",
-      "version": "1.0.0",
-      "author": {
-        "name": "Ladvien"
-      }
-    },
-    {
-      "name": "meshy-pipeline",
-      "source": "./meshy-pipeline",
-      "description": "Generate game-ready 3D assets from reference images via Meshy.ai: Image → 3D → Remesh (quad/adaptive) → Texture → Animate",
-      "version": "1.0.0",
-      "author": {
-        "name": "Ladvien"
-      }
-    },
-    {
-      "name": "quality-tracker",
-      "source": "./quality-tracker",
-      "description": "Track user feedback on every code change with scores and qualitative notes tied to git commits. Self-improving agent reads past feedback. Supports rollback to last-known-good state.",
-      "version": "1.0.0",
-      "author": {
-        "name": "Ladvien"
-      }
-    },
-    {
       "name": "academic-research-hs",
       "source": "./academic-research-hs",
-      "description": "Multi-agent academic research pipeline hard-wired to home-still: deep-research + academic-paper + academic-paper-reviewer + academic-pipeline orchestrator, with every literature search and integrity gate routed through the home-still local corpus first (distill_search, catalog_*, paper_get, paper_download) before web APIs.",
-      "version": "0.1.0",
+      "description": "Multi-agent academic research pipeline hard-wired to home-still: deep-research + academic-paper + academic-paper-reviewer + academic-pipeline orchestrator + home-still-bridge routing skill, with every literature search and integrity gate routed through the home-still local corpus (distill_search, catalog_*, paper_get, paper_download) before web APIs.",
+      "version": "0.2.0",
       "author": {
         "name": "Ladvien"
       }

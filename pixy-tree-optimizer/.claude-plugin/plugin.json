@@ -1,8 +1,0 @@
-{
-    "name": "pixy-tree-optimizer",
-    "description": "VLM-guided optimization for PixyTree procedural tree presets using Ollama Cloud qwen-3vl",
-    "version": "1.0.0",
-    "author": {
-        "name": "Ladvien"
-    }
-}
