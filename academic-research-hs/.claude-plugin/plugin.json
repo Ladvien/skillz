@@ -1,7 +1,7 @@
 {
   "name": "academic-research-hs",
-  "description": "Multi-agent academic research pipeline hard-wired to the home-still MCP server: deep-research + academic-paper + academic-paper-reviewer + academic-pipeline orchestrator, plus the home-still-bridge routing skill. Forked from Imbad0202/academic-research-skills and rewired so every literature search, citation verification, and integrity gate goes through the home-still local corpus (distill_search, catalog_*, paper_get, paper_download) before falling back to web APIs.",
-  "version": "0.2.0",
+  "description": "Multi-agent academic research pipeline hard-wired to the home-still MCP server: deep-research + academic-paper + academic-paper-reviewer + academic-pipeline orchestrator, plus the home-still-bridge routing skill (now with a snowballing protocol for recursive citation expansion). Forked from Imbad0202/academic-research-skills and rewired so every literature search, citation verification, and integrity gate goes through the home-still local corpus (distill_search, catalog_*, paper_get, paper_download) before falling back to web APIs.",
+  "version": "0.3.0",
   "author": {
     "name": "Ladvien"
   }

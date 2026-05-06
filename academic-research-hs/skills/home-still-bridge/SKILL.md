@@ -2,8 +2,8 @@
 name: home-still-bridge
 description: "Routing policy that bridges the academic-research skills (deep-research, academic-paper, academic-paper-reviewer, academic-pipeline) with the home-still MCP server. When any academic research workflow needs to discover, read, or cite papers, prefer the local home-still corpus first (distill_search, catalog_*, markdown_read) and fall back to web APIs (paper_search) only to fill gaps — then persist new finds via paper_download so the library grows. Triggers on: research, deep research, literature review, systematic review, meta-analysis, PRISMA, fact-check, write paper, academic paper, revision, peer review, review paper, manuscript review, academic pipeline, research to paper, paper workflow, home-still, hs paper, hs distill, hs scribe."
 metadata:
-  version: "0.1.0"
-  last_updated: "2026-04-19"
+  version: "0.2.0"
+  last_updated: "2026-05-06"
   status: active
   task_type: policy
   related_skills:
@@ -38,6 +38,61 @@ When a web-discovered paper is worth keeping:
 ### Citations and bib data
 - Pull DOI, authors, venue, year, and title exclusively from `catalog_read` for anything in the library. This is what keeps `academic-paper`'s and `academic-pipeline`'s integrity-verification stages happy — fabricated refs fail those gates.
 - For papers not yet in the library, resolve via `paper_get` (DOI) or `paper_search` *before* you cite them, then run the ingest sequence above.
+
+## Snowballing protocol
+
+Use when an upstream skill needs **recursive citation expansion** from one or more seed papers — i.e. backward chaining (references), forward chaining (citations), pearl growing (semantic neighbors), or bibliographic coupling.
+
+### Technique support in home-still
+
+| Technique | Description | home-still support |
+|---|---|---|
+| **Pearl growing** | Semantic expansion from seed terms | ✅ `distill_search` |
+| **Backward chaining** | Follow references *out of* a paper | ⚠️ `markdown_read` → LLM parses References section → `paper_get` / `paper_download` per DOI |
+| **Forward chaining** | Find papers that *cite* a paper | ❌ Not native. Fall back to Semantic Scholar Graph API (`/graph/v1/paper/{id}/citations`) or OpenAlex (`cited_by_api_url`) via web fetch, then `paper_download` to persist |
+| **Bibliographic coupling / co-citation** | Find structural peers via shared references | ❌ Not native. Fall back to OpenAlex / Semantic Scholar |
+
+Whenever a fallback API yields a paper worth keeping, route it through `paper_download` so the local corpus grows and future hops can use `distill_search` instead of HTTP.
+
+### Protocol
+
+1. **Seed selection** — 1–5 papers from `distill_search` or user nomination. Confirm each has a DOI and is converted (`catalog_read`); `scribe_convert` if not. Initialize `visited = {seed DOIs}`.
+2. **Per-hop iteration**, for each paper P in the current frontier:
+   - **Backward**: `markdown_read(P.stem)` → parse the References section → DOI set B.
+   - **Forward** (if needed): Semantic Scholar / OpenAlex citations endpoint → DOI set F.
+   - For each candidate `C ∈ B ∪ F` not in `visited`:
+     - Apply inclusion criteria (year, venue tier, language, study type).
+     - Score relevance via `distill_search` on C's title + abstract against the seed corpus.
+     - If score ≥ threshold and inclusion passes: `paper_download(C.doi)`, add to next frontier and `visited`.
+   - Log per-hop metrics: `|added|`, `|examined|`, mean relevance score.
+3. **Promote next frontier** to current, repeat until a termination cue fires.
+
+### Hard caps
+
+- Max hops: **2** default, **3** extended (systematic review).
+- Max papers added per hop: **50**.
+- Max total ingested per run: **200**.
+
+### Termination cues
+
+Stop when **any two of cues 1–5 fire**, or **any one hard cap**.
+
+| # | Cue | Threshold |
+|---|---|---|
+| 1 | **Theoretical saturation** | Last 10 adds contribute no new theme/code to the synthesis matrix |
+| 2 | **Diminishing returns** | Per-hop yield ratio `added / examined` < **10%** |
+| 3 | **Citation ring closure** | ≥ **80%** of next-hop candidates are already in `visited` |
+| 4 | **Topic drift** | Mean cosine similarity of new adds to seed corpus < **0.55** — cheap to compute because the corpus is vector-indexed (`distill_search`); the unique advantage of having a local semantic index |
+| 5 | **Triangulation** | Independent `paper_search` keyword query and snowballing converge on ≥ **70%** the same DOIs |
+| 6 | **Hard cap hit** | Any hop / per-hop / total cap above |
+
+For systematic reviews under PRISMA, the cues and thresholds **must be pre-registered** in the protocol (PRISMA-P item 12). Do not adjust thresholds mid-run.
+
+### Integration with upstream skills
+
+- `deep-research` (`systematic-review` mode): snowballing supplements Phase 2 keyword search; counts go in the PRISMA flow diagram under "Records identified through other sources."
+- `academic-pipeline`: snowballing runs after the initial bibliography pass and before Stage 2.5 integrity verification. Every snowballed paper still goes through `catalog_read`-based citation gating.
+- `academic-paper-reviewer`: snowball one hop backward from a manuscript's reference list to spot-check missed adjacent literature.
 
 ## Health preflight
 
@@ -74,3 +129,4 @@ Warn the user if:
 | Ingest new paper | `paper_download` | — |
 | Confirm ingested | `distill_exists` / `distill_status` | — |
 | Health before long run | `system_status` + `scribe_health` + `distill_status` | — |
+| Snowball expansion | `markdown_read` (refs) + `paper_get` / `paper_download` per DOI | Semantic Scholar / OpenAlex citations API for forward chaining |

@@ -16,8 +16,8 @@
     {
       "name": "academic-research-hs",
       "source": "./academic-research-hs",
-      "description": "Multi-agent academic research pipeline hard-wired to home-still: deep-research + academic-paper + academic-paper-reviewer + academic-pipeline orchestrator + home-still-bridge routing skill, with every literature search and integrity gate routed through the home-still local corpus (distill_search, catalog_*, paper_get, paper_download) before web APIs.",
-      "version": "0.2.0",
+      "description": "Multi-agent academic research pipeline hard-wired to home-still: deep-research + academic-paper + academic-paper-reviewer + academic-pipeline orchestrator + home-still-bridge routing skill with snowballing protocol, with every literature search and integrity gate routed through the home-still local corpus (distill_search, catalog_*, paper_get, paper_download) before web APIs.",
+      "version": "0.3.0",
       "author": {
         "name": "Ladvien"
       }
