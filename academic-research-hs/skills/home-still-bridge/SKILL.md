@@ -45,22 +45,23 @@ Use when an upstream skill needs **recursive citation expansion** from one or mo
 
 ### Technique support in home-still
 
+Everything below uses home-still MCP tools end to end. The bridge does not bypass the MCP with raw web fetch even when an upstream provider would expose more — going around the wrapper breaks the catalog, the integrity gates, and reproducibility. If a capability is missing, the protocol degrades; it does not detour.
+
 | Technique | Description | home-still support |
 |---|---|---|
 | **Pearl growing** | Semantic expansion from seed terms | ✅ `distill_search` |
-| **Backward chaining** | Follow references *out of* a paper | ⚠️ `markdown_read` → LLM parses References section → `paper_get` / `paper_download` per DOI |
-| **Forward chaining** | Find papers that *cite* a paper | ❌ Not native. Fall back to Semantic Scholar Graph API (`/graph/v1/paper/{id}/citations`) or OpenAlex (`cited_by_api_url`) via web fetch, then `paper_download` to persist |
-| **Bibliographic coupling / co-citation** | Find structural peers via shared references | ❌ Not native. Fall back to OpenAlex / Semantic Scholar |
-
-Whenever a fallback API yields a paper worth keeping, route it through `paper_download` so the local corpus grows and future hops can use `distill_search` instead of HTTP.
+| **Backward chaining** | Follow references *out of* a paper | ⚠️ `markdown_read` → LLM parses the References section → `paper_get` / `paper_download` per DOI. Reliability depends on how cleanly scribe converted the bibliography. |
+| **Forward chaining** | Find papers that *cite* a paper | ❌ **Not yet available.** `paper_search` is keyword-only across the 6 providers; it does not expose the citation graph. Requires extending home-still with a `paper_citations(doi)` tool wrapping Semantic Scholar Graph API or OpenAlex `cited_by_api_url`. Until then, snowballing operates backward-only. |
+| **Bibliographic coupling / co-citation** | Find structural peers via shared references | ❌ **Not yet available.** Requires a `paper_neighbors(doi, mode)` tool wrapping OpenAlex / Semantic Scholar inside home-still. |
 
 ### Protocol
 
 1. **Seed selection** — 1–5 papers from `distill_search` or user nomination. Confirm each has a DOI and is converted (`catalog_read`); `scribe_convert` if not. Initialize `visited = {seed DOIs}`.
 2. **Per-hop iteration**, for each paper P in the current frontier:
    - **Backward**: `markdown_read(P.stem)` → parse the References section → DOI set B.
-   - **Forward** (if needed): Semantic Scholar / OpenAlex citations endpoint → DOI set F.
-   - For each candidate `C ∈ B ∪ F` not in `visited`:
+   - **Forward**: skipped until home-still gains a `paper_citations` tool (see Roadmap below).
+   - For each candidate `C ∈ B` not in `visited`:
+     - Resolve via `paper_get(C.doi)` to confirm the DOI is real and capture metadata.
      - Apply inclusion criteria (year, venue tier, language, study type).
      - Score relevance via `distill_search` on C's title + abstract against the seed corpus.
      - If score ≥ threshold and inclusion passes: `paper_download(C.doi)`, add to next frontier and `visited`.
@@ -93,6 +94,18 @@ For systematic reviews under PRISMA, the cues and thresholds **must be pre-regis
 - `deep-research` (`systematic-review` mode): snowballing supplements Phase 2 keyword search; counts go in the PRISMA flow diagram under "Records identified through other sources."
 - `academic-pipeline`: snowballing runs after the initial bibliography pass and before Stage 2.5 integrity verification. Every snowballed paper still goes through `catalog_read`-based citation gating.
 - `academic-paper-reviewer`: snowball one hop backward from a manuscript's reference list to spot-check missed adjacent literature.
+
+### Roadmap: capabilities that need MCP extensions
+
+The following capabilities are deliberately out of scope for the current bridge because the supporting tools do not yet exist on home-still:
+
+- `paper_references(doi)` — structured reference list (replaces the LLM-parses-markdown step; eliminates the conversion-quality dependency).
+- `paper_citations(doi, limit, year_from)` — forward citation list (enables forward chaining).
+- `paper_neighbors(doi, mode={coupling|co-citation}, limit)` — bibliometric peers.
+
+Each is a thin wrapper around Semantic Scholar Graph API (free, generous rate limits) or OpenAlex (free, requires polite-pool email). When these land in home-still, this protocol's Forward-chaining and Bibliographic-coupling rows flip from ❌ to ✅ with no skill rewrite — just remove the "skipped" line in the iteration step and re-enable the relevant termination cues.
+
+Until then: backward + pearl-growing only. Document this in any PRISMA flow diagram as "Forward citation searching: not performed; tooling unavailable."
 
 ## Health preflight
 
@@ -129,4 +142,4 @@ Warn the user if:
 | Ingest new paper | `paper_download` | — |
 | Confirm ingested | `distill_exists` / `distill_status` | — |
 | Health before long run | `system_status` + `scribe_health` + `distill_status` | — |
-| Snowball expansion | `markdown_read` (refs) + `paper_get` / `paper_download` per DOI | Semantic Scholar / OpenAlex citations API for forward chaining |
+| Snowball expansion | `markdown_read` (refs) + `paper_get` / `paper_download` per DOI | — (forward chaining requires future `paper_citations` MCP tool) |
