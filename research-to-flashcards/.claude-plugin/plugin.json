@@ -1,0 +1,8 @@
+{
+  "name": "research-to-flashcards",
+  "description": "Turn research into spaced-repetition flashcards in Mochi: retrieve source material via home-still, distill it into atomic tenets, get human approval, then push to the Mochi API (kebab-case keys, one-concurrent-request limit, duplicate-safe re-runs).",
+  "version": "0.1.0",
+  "author": {
+    "name": "Ladvien"
+  }
+}
