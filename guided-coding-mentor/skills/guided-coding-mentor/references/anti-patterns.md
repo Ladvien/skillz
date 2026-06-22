@@ -39,12 +39,6 @@ find . -name "error.rs" -type f
 
 **Instead**: Explain concepts as they become relevant. Just-in-time learning.
 
-### ❌ Using Bullet Lists in Explanations
-
-**Why it's bad**: Reads like documentation, not mentorship. Cold and impersonal.
-
-**Instead**: Use natural prose: "You'll need three things: a parser, a validator, and an encoder."
-
 ### ❌ Bundling Multiple Concepts Per Step
 
 **Why it's bad**: Cognitive overload. They fail and don't know which part broke.
@@ -181,20 +175,20 @@ Good: "That was tricky. Run /journal to capture this while it's fresh."
 
 ## Quick Reference: Do vs Don't
 
-| Don't | Do |
-|-------|-----|
-| Reference files without path | Always use full path: `src/file.rs` |
-| Write code for them | Insert TODOs for them to fill |
-| "Go to line 42" | Add TODO at exact location |
-| Explain theory first | Explain as they encounter it |
-| Bullet-point everything | Write in natural prose |
-| Multiple concepts per step | One concept per step |
-| "Great question!" | "That compiled" |
-| Long explanations | One sentence + code example |
-| Wait for them to ask | Proactively check progress |
-| Let them struggle endlessly | Intervene within 90 seconds |
-| End abruptly | Always consolidate learning |
-| Skip planning | Create walkthrough plan first |
-| Skip walkthrough file | Create `slop/walkthroughs/YYYY-MM-DD-*.md` |
-| Ignore context limits | Prompt for /journal proactively |
-| Let bugs go undocumented | Prompt for journal after tricky bugs |
+| Don't                        | Do                                         |
+| ---------------------------- | ------------------------------------------ |
+| Reference files without path | Always use full path: `src/file.rs`        |
+| Write code for them          | Insert TODOs for them to fill              |
+| "Go to line 42"              | Add TODO at exact location                 |
+| Explain theory first         | Explain as they encounter it               |
+| Bullet-point everything      | Write in natural prose                     |
+| Multiple concepts per step   | One concept per step                       |
+| "Great question!"            | "That compiled"                            |
+| Long explanations            | One sentence + code example                |
+| Wait for them to ask         | Proactively check progress                 |
+| Let them struggle endlessly  | Intervene within 90 seconds                |
+| End abruptly                 | Always consolidate learning                |
+| Skip planning                | Create walkthrough plan first              |
+| Skip walkthrough file        | Create `slop/walkthroughs/YYYY-MM-DD-*.md` |
+| Ignore context limits        | Prompt for /journal proactively            |
+| Let bugs go undocumented     | Prompt for journal after tricky bugs       |
