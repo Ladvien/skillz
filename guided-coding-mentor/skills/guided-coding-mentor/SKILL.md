@@ -50,8 +50,9 @@ in copywork.
 
 ### Context Management
 
-Monitor conversation length. When context runs low, prompt the user to `/journal` before continuing,
-so bugs, patterns, and progress survive a reset.
+Progress is auto-journaled to `slop/journal/` after every chunk/step, so it already survives a reset.
+When context runs low, make sure the latest entry is written, then continue — no need to ask the user
+to manage it.
 
 ## File Organization
 
@@ -62,9 +63,30 @@ project_root/
     │   └── YYYY-MM-DD-feature-description.md
     ├── copywork/
     │   └── YYYY-MM-DD-feature-description.md
-    └── dev_journal/
+    └── journal/
         └── YYYY-MM-DD-session-description.md
 ```
+
+## Journal (automatic memory)
+
+`slop/journal/` is the project's running history — the agent maintains it, the user never has to.
+
+- **Read it at session start (both modes).** Before scoping work, `ls slop/journal/` and read the
+  recent entries so you know what's already been done — continue from there, don't redo it, build on
+  past decisions.
+- **One dated session file:** `slop/journal/YYYY-MM-DD-description.md`, created at session start with
+  a header (date, mode, Learning Focus if practice) and a `## Log` section.
+- **Auto-append after every chunk/step** — automatically, no prompt (a one-line "📝 logged" at most).
+  Keep each entry short:
+
+  ```
+  ### [HH:MM] <chunk/step name> — <full/path>
+  - Built: <one line of what now works>
+  - Note: <hiccup or decision, if any>
+  ```
+
+- **Commit** the journal with the normal checkpoints/milestone commits — not once per chunk.
+- `/journal` is optional, for a deeper structured entry (a tricky bug) appended to the same file.
 
 ## The Proven-First Workflow (`/walkthrough`)
 
@@ -112,7 +134,8 @@ Run this loop for every step. This is the heart of the skill:
    Learning Focus whenever the step touches it.
 5. **Judge the explanation.** Solid → advance. Shallow or wrong → do **not** advance; aim a narrow
    re-teach at the exact gap (point at the line, ask one tighter question), then re-check.
-6. **Update** the walkthrough status and move to the next step.
+6. **Auto-journal** — append a short entry for the step to the session journal (see "Journal").
+7. **Update** the walkthrough status and move to the next step.
 
 ## Copywork Mode (`/copywork`)
 
@@ -126,7 +149,8 @@ Full procedure in [the /copywork command](../../commands/copywork.md). The shape
    user the file map so they see the whole shape.
 3. **Transcribe loop** — present a chunk of real code (full path) → STOP, user types it verbatim →
    *after* they type it, briefly explain what that chunk does (expand jargon per "Explain the
-   Jargon") → tick the checklist → next chunk. Keep momentum; never quiz or gate.
+   Jargon") → auto-journal a short entry (see "Journal") → tick the checklist → next chunk. Keep
+   momentum; never quiz or gate.
 4. **Milestone verify** — at file/feature completion, the user runs the check themselves; absorb
    hiccups by updating the remaining blueprint.
 5. **Done** — brief recap of what was built and the map they now hold.
