@@ -1,24 +1,31 @@
 # Guided Coding Mentor Plugin
 
-A Claude Code plugin that provides a senior engineering mentor for deliberate coding practice.
+A Claude Code plugin that provides a senior engineering mentor for deliberate coding practice. You
+write and verify every line yourself; the agent navigates. The goal is not working code — it is code
+you can **maintain on your own**.
 
 ## What It Does
 
-**Proven-first workflow**: Before teaching you anything, the mentor plans the approach, builds and verifies the feature works, documents how to build it, then guides you to implement it yourself.
+**Proven-first workflow**: Before teaching you anything, the mentor plans the approach, builds and
+verifies the feature works privately, documents how to build it, then guides you to implement it
+yourself.
 
-This eliminates wasted time following instructions that lead nowhere.
+**Explain-back gate**: You don't advance to the next step until you can explain — in your own words —
+what the code does, why this approach, and what would break if a key line changed. A step is done
+when you can explain it, not when it merely runs.
 
-**Dev journaling**: Captures bugs, challenges, and solutions so you build a personal knowledge base of problems you've solved.
+**Dev journaling**: Captures bugs, challenges, and solutions so you build a personal knowledge base
+of problems you've solved.
 
 ## How It Works
 
 1. You tell Claude what you want to build
 2. Claude writes a plan with goals, acceptance criteria, and technical approach
-3. Claude implements it, verifies it compiles, and demos it to you
-4. You approve that it works as expected
-5. Claude documents the implementation in `slop/walkthroughs/YYYY-MM-DD-description.md`
-6. Claude resets the codebase (keeping only the walkthrough doc)
-7. Claude guides you through implementing it yourself with TODO markers
+3. Claude implements and verifies it privately, then documents the real path
+4. Claude resets the codebase (keeping only the walkthrough doc)
+5. Claude guides you through building it yourself with TODO markers — the shape, never the solution
+6. You run the build/test yourself and report the result
+7. You explain the step; Claude advances only when the explanation is solid
 8. Throughout: Claude prompts you to journal bugs and solutions
 
 ## Requirements
@@ -30,12 +37,8 @@ This eliminates wasted time following instructions that lead nowhere.
 | Command | Description |
 |---------|-------------|
 | `/walkthrough` | Start a new proven-first guided coding session |
-| `/next` | Move to the next step in current walkthrough |
-| `/stuck` | Get escalating help (nudge → hint → breadcrumb → show) |
+| `/next` | Move to the next step (blocked until you can explain the current one) |
 | `/journal` | Document bugs, challenges, and solutions from this session |
-| `/quiz` | Quick pattern check on recent code |
-| `/progress` | Show current walkthrough status |
-| `/recap` | Generate end-of-session summary |
 
 ## File Organization
 
@@ -60,27 +63,18 @@ Claude will:
 1. Verify git repo with working remote
 2. Create a safety checkpoint (commit + push)
 3. Write a plan with goals, acceptance criteria, and approach
-4. Build the feature and verify it works
-5. Demo it for your approval
-6. Document in `slop/walkthroughs/YYYY-MM-DD-description.md`
-7. Reset to checkpoint (keeping walkthrough doc)
-8. Guide you to build it yourself
+4. Build the feature and verify it works privately
+5. Document in `slop/walkthroughs/YYYY-MM-DD-description.md`
+6. Reset to checkpoint (keeping walkthrough doc)
+7. Guide you to build it yourself
 
 ### During a session
 
-- `/next` — Ready for the next step
-- `/stuck` — Need help (escalates from hints to showing the answer)
+- `/next` — Ready for the next step (you'll be asked to explain the current one first)
 - `/journal` — Document what you've done and bugs you've solved
-- `/quiz` — Test your understanding of patterns you've used
-- `/progress` — See where you are
 
-### End a session
-
-```shell
-/recap
-```
-
-Claude will summarize what you built and learned, then prompt you to journal.
+Claude escalates help gradually when you're stuck (nudge → hint → breadcrumb → show, 90-second max),
+and guides you to run each verification yourself rather than running it for you.
 
 ### Document your work
 
@@ -102,9 +96,10 @@ Claude will also prompt you to journal when:
 ## Key Principles
 
 1. **Plan it first** — Write goals and approach before coding
-2. **Prove it first** — Claude builds and verifies before teaching
+2. **Prove it first** — Claude builds and verifies privately before teaching
 3. **You write the code** — During guidance, Claude guides, you type
-4. **Full paths always** — No ambiguity about which file to edit
-5. **One concept at a time** — No cognitive overload
-6. **90-second rule** — Never struggle alone for more than 90 seconds
-7. **Document the journey** — Journal bugs and solutions for future reference
+4. **You run the checks** — Claude tells you what to run; you run it and report
+5. **Explain before advancing** — A step is done when you can explain it, not when it runs
+6. **Full paths always** — No ambiguity about which file to edit
+7. **90-second rule** — Never struggle alone for more than 90 seconds
+8. **Document the journey** — Journal bugs and solutions for future reference

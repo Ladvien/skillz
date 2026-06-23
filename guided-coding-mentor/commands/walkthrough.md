@@ -171,12 +171,14 @@ Before writing any code, create the walkthrough plan document.
 Now guide the user through implementing it themselves:
 
 1. Tell user: "I've proven this works and documented the approach. Now you'll build it yourself."
-2. Follow standard guided-coding-mentor skill workflow:
-   - Present first step with TODOs
-   - User writes code
-   - Verify each step
-   - Progress through walkthrough doc
-3. Reference the walkthrough file for steps, but deliver via TODO-driven workflow
+2. Run the guide loop for every step (see SKILL.md "Phase 3: Guide"):
+   - **Present** the step with TODO markers — the shape, never the solution
+   - **Wait** for the user to write the code; do not write it for them
+   - **Guide them to verify** — tell them what to run; *they* run it and report the result
+   - **Comprehension gate** — they explain what it does, why, and what would break if a key line
+     changed (see references/comprehension-gate.md)
+   - **Advance only when the explanation is solid.** Shallow/wrong → re-teach the gap, re-check
+3. Reference the walkthrough file for steps, but deliver via the TODO-driven loop above
 4. Update walkthrough status to "In Progress" and track completed steps
 
 ## Walkthrough Doc Format (Final)
