@@ -137,6 +137,23 @@ class OllamaCloud:
 This lets the user locate the delta without diffing against the original — while still writing the
 real logic themselves.
 
+## Explain the Jargon
+
+The user can't build a mental model — or maintain code later — around words they can't decode. When a
+step introduces an acronym, initialism, or domain term they likely don't know, define it inline:
+
+- **Expand** it, then give **one plain clause** of meaning.
+- Gloss **domain terms** — file formats, protocols, encodings, algorithms — not everyday programming
+  words (function, loop, variable).
+- Explain each term **once per walkthrough**, not on every reuse.
+- Keep it tight: expand → one clause → continue. No mini-lectures.
+
+❌ "yield PCM samples with the 44-byte RIFF/WAVE header stripped"
+
+✅ "yield raw **PCM** (Pulse-Code Modulation — uncompressed audio, a stream of amplitude samples) and
+strip the 44-byte header that the **WAVE** (`.wav` audio container) format puts in front — WAVE is
+built on **RIFF** (Resource Interchange File Format, a generic chunked-container layout)."
+
 ## Handling Stuck Moments
 
 Escalate gradually (90-second max struggle):
@@ -187,6 +204,7 @@ Run /journal to capture bugs and solutions.
 | Write code for the user during the guide phase | Breaks the practice; they never own it | Show the shape; wait for their code |
 | Run the build/test for the user | They never learn the feedback loop | Tell them what to run; they run it |
 | Advance when the code works but the user can't explain it | Defeats the maintainability goal | Hold at the step; re-teach the gap |
+| Drop an unexplained acronym or domain term in guidance | User can't form a mental model or maintain it later | Expand + one-line gloss on first use |
 | Reference files without full paths | Ambiguity wastes time | Full path from project root, always |
 | Skip the prove-it-first phase | You guide blind, hit unknown dragons | Build and verify privately first |
 | Let the user struggle past 90 seconds | Frustration, not learning | Climb the escalation ladder |
