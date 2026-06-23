@@ -1,8 +1,14 @@
 # Guided Coding Mentor Plugin
 
-A Claude Code plugin that provides a senior engineering mentor for deliberate coding practice. You
-write and verify every line yourself; the agent navigates. The goal is not working code — it is code
-you can **maintain on your own**.
+A Claude Code plugin that provides a senior engineering mentor. You type every line yourself; the
+agent navigates. It runs **two modes**:
+
+- **Practice (`/walkthrough`)** — deliberate practice. The agent shows the *shape* (TODOs), you write
+  the logic, and you can't advance until you can explain it. For code you want to deeply own.
+- **Copywork (`/copywork`)** — get it done. The agent designs the whole thing, then dictates the
+  *real* code one chunk at a time; you transcribe it and the agent explains each chunk after. For
+  working code fast, while still building a mental model by typing it (the "retype The Great Gatsby"
+  method).
 
 ## What It Does
 
@@ -36,8 +42,9 @@ of problems you've solved.
 
 | Command | Description |
 |---------|-------------|
-| `/walkthrough` | Start a new proven-first guided coding session |
-| `/next` | Move to the next step (blocked until you can explain the current one) |
+| `/walkthrough` | Practice mode — proven-first guided coding session |
+| `/copywork` | Get-it-done mode — agent dictates real code, you transcribe it chunk by chunk |
+| `/next` | Move to the next walkthrough step (blocked until you can explain the current one) |
 | `/journal` | Document bugs, challenges, and solutions from this session |
 
 ## File Organization

@@ -8,14 +8,25 @@ Start a guided coding session using the guided-coding-mentor skill. The agent fi
 
 ## Phase 1: Setup
 
-1. Ask what the user wants to build (or reference a spec from `slop/features/`)
-2. Verify this is a git repository:
+1. **Establish the Learning Focus first.** Before anything else, ask:
+
+   ```
+   What skill would you like to work on today?
+   ```
+
+   Capture the answer — a coding competency to practice this session (e.g. lifetimes, async
+   streaming, error handling, recursion). This is the **Learning Focus** and it anchors the rest of
+   the session. The feature is the vehicle; the focus is the point.
+
+2. Ask what the user wants to build. Steer the feature so it actually exercises the Learning Focus —
+   if they have no feature in mind, propose 2-3 small ones that would train it.
+3. Verify this is a git repository:
    ```bash
    git rev-parse --is-inside-work-tree
    ```
    If not a git repo, stop and tell user: "This must be run inside a git repository."
 
-3. Commit and push all current changes (safety checkpoint):
+4. Commit and push all current changes (safety checkpoint):
    ```bash
    git add -A
    git commit -m "checkpoint: pre-walkthrough state" --allow-empty
@@ -23,7 +34,7 @@ Start a guided coding session using the guided-coding-mentor skill. The agent fi
    ```
    If push fails, stop and tell user: "Push failed. Fix remote issues before starting walkthrough."
 
-4. Record the checkpoint commit:
+5. Record the checkpoint commit:
    ```bash
    git rev-parse HEAD
    ```
@@ -52,10 +63,13 @@ Before writing any code, create the walkthrough plan document.
 **Date:** [YYYY-MM-DD]
 **Status:** Planning
 **Checkpoint:** [commit hash from Phase 1]
+**Learning Focus:** [the competency being practiced this session]
 
 ## Goal
 
 [One clear sentence describing what we're building]
+
+**How this exercises the focus:** [one line — why this feature trains the Learning Focus]
 
 ## Acceptance Criteria
 
@@ -176,9 +190,11 @@ Now guide the user through implementing it themselves:
    - **Wait** for the user to write the code; do not write it for them
    - **Guide them to verify** — tell them what to run; *they* run it and report the result
    - **Comprehension gate** — they explain what it does, why, and what would break if a key line
-     changed (see references/comprehension-gate.md)
+     changed (see references/comprehension-gate.md). Aim these questions at the **Learning Focus**
+     first whenever the step touches it.
    - **Advance only when the explanation is solid.** Shallow/wrong → re-teach the gap, re-check
-3. Reference the walkthrough file for steps, but deliver via the TODO-driven loop above
+3. Reference the walkthrough file for steps (including its **Learning Focus** header), but deliver
+   via the TODO-driven loop above
 4. Update walkthrough status to "In Progress" and track completed steps
 
 ## Walkthrough Doc Format (Final)
@@ -189,6 +205,7 @@ Now guide the user through implementing it themselves:
 **Date:** [YYYY-MM-DD]
 **Status:** [Planning | Proven | In Progress | Complete]
 **Checkpoint:** [commit hash]
+**Learning Focus:** [the competency being practiced this session]
 
 ## Goal
 

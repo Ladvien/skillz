@@ -42,7 +42,9 @@ The user runs the build/test themselves and reports the result — do not run it
 
 ### Gate 2 — Can you explain it? (blocking)
 
-⚠️ Do NOT advance until the user explains the step in their own words. Ask:
+⚠️ Do NOT advance until the user explains the step in their own words. Read the **Learning Focus**
+from the walkthrough doc header and aim these questions at that competency first whenever the step
+touches it. Ask:
 
 ```
 Before we move on — in your own words:
