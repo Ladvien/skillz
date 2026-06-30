@@ -62,9 +62,14 @@ it, not when it merely runs.
 1. Update walkthrough file:
    - Mark current step `[x] Complete`
    - Add timestamp to Session Log
-2. Present next step using the guided implementation format:
+2. Auto-journal the completed step — append a short entry to the session journal in `slop/journal/`
+   (no prompt; see the skill's "Journal" section).
+3. Present next step using the guided implementation format. Lead with the progress bar (`Step
+   n/total`, total = number of Steps in the walkthrough doc; see the skill's "Progress Bar"):
 
 ```
+[████████░░░░░░░░░░░░] Step 4/10
+
 ## Step N: [Component Name]
 
 **Pattern Recognition:**
