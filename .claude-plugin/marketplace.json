@@ -21,6 +21,15 @@
       "author": {
         "name": "Ladvien"
       }
+    },
+    {
+      "name": "procedural-animation-assets",
+      "source": "./procedural-animation-assets",
+      "description": "Take any Blender-modeled asset and make it procedurally animatable in a game engine: choose the technique (morph / skeletal+drivers / vertex-shader / physics / spline / runtime-mesh-gen), author it through BlenderMCP, export to glTF, and drive it in-engine — at any polygon budget.",
+      "version": "0.1.0",
+      "author": {
+        "name": "Ladvien"
+      }
     }
   ]
 }
