@@ -1,118 +1,47 @@
 ---
-description: Document what was done, issues encountered, and solutions found
+description: Add a deeper, structured entry (a tricky bug, a key decision) to the current session's journal — on top of the automatic per-chunk logging
 ---
 
 # Journal Command
 
-Create a detailed dev journal entry documenting work done, bugs encountered, and solutions found.
+Routine progress is journaled **automatically** after each copywork chunk and each walkthrough step
+(see the skill's "Journal (automatic memory)" section). Use `/journal` when you want to capture
+something with more depth than the auto-log — a tricky bug, a non-obvious decision, an "aha" moment.
 
-## When to Use
-
-- User runs `/journal`
-- Agent detects context is getting low (proactively prompt user)
-- End of a significant work session
-- After resolving a tricky bug
+It appends to the **current session's** journal file in `slop/journal/`, so everything stays on one
+timeline.
 
 ## Steps
 
-1. Determine journal filename:
+1. Find the current session journal (most recent in `slop/journal/`):
    ```bash
-   date +%Y-%m-%d
+   ls -t slop/journal/*.md 2>/dev/null | head -1
    ```
-   Ask user for a brief description (2-4 words, kebab-case) for the filename.
+   If none exists yet, create `slop/journal/YYYY-MM-DD-description.md` (`date +%Y-%m-%d`, ask the user
+   for a 2-4 word kebab-case description) with a `# Journal: [date] — [description]` header and a
+   `## Log` section.
 
-2. Create journal directory if needed:
-   ```bash
-   mkdir -p slop/dev_journal
-   ```
+2. Read the existing entries first so the new one builds on what's there (don't repeat prior notes).
 
-3. Generate journal entry by reviewing:
-   - Current walkthrough file (if active)
-   - Recent git commits
-   - Code changes made this session
-   - Conversation history for bugs/solutions
+3. Append a structured entry under `## Log`, reviewing: the active walkthrough/copywork doc, recent
+   git commits, code changes this session, and the conversation for bugs/solutions.
 
-4. Write to `slop/dev_journal/YYYY-MM-DD-description.md`
-
-## Journal Entry Format
+## Structured Entry Format
 
 ```markdown
-# Dev Journal: [Date] - [Description]
+### [HH:MM] [Title]
 
-**Session Duration:** [approximate time spent]
-**Walkthrough:** [link to active walkthrough if any, or "None"]
+**What:** [what was done / what this is about]
 
-## What We Did
+**Bug/Challenge:** [symptom → initial hypothesis → investigation → root cause → solution], if any
 
-[Narrative description of work accomplished. Be specific about features, components, and patterns implemented.]
-
-## Bugs & Challenges
-
-### [Bug/Challenge 1 Title]
-
-**Symptom:** [What was happening]
-
-**Initial Hypothesis:** [What we thought was wrong]
-
-**Investigation:** [What we tried, what we learned]
-
-**Root Cause:** [The actual problem]
-
-**Solution:** [How we fixed it]
-
-**Lesson:** [What to remember for next time]
-
-### [Bug/Challenge 2 Title]
-...
-
-## Code Changes Summary
-
-- `path/to/file.rs`: [what changed and why]
-- `path/to/other.rs`: [what changed and why]
-
-## Patterns Learned
-
-- **[Pattern Name]**: [Brief description of when/why to use it]
-
-## Open Questions
-
-- [Any unresolved questions or future considerations]
-
-## Next Session
-
-[What to pick up next time]
+**Lesson:** [what to remember next time]
 ```
 
-## Context-Low Detection
+## Commit
 
-When the agent detects context is getting low (conversation is long, lots of code discussed), proactively prompt:
-
-```
-**Context Check:** We've covered a lot of ground. Before we continue, let's capture what we've done.
-
-Run /journal to document:
-- The bugs we solved
-- The patterns we used  
-- Where we left off
-
-This ensures nothing gets lost if the conversation resets.
-```
-
-## If No Significant Work Done
-
-```
-Nothing substantial to journal yet. Keep coding and run /journal when you've:
-- Solved a tricky bug
-- Implemented a feature
-- Learned something worth remembering
-```
-
-## Commit the Journal
-
-After writing the journal:
+The journal is committed alongside the normal checkpoints. If the user wants it saved now:
 ```bash
-git add slop/dev_journal/
+git add slop/journal/
 git commit -m "journal: [description]"
 ```
-
-Optionally push if user confirms.

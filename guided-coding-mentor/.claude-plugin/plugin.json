@@ -1,7 +1,7 @@
 {
     "name": "guided-coding-mentor",
-    "description": "Senior engineering mentor for deliberate coding practice with TODO-driven workflow",
-    "version": "1.2.0",
+    "description": "Senior engineering mentor for deliberate coding practice: you write and verify every line, gated on explaining it before you advance",
+    "version": "2.0.0",
     "author": {
         "name": "Ladvien"
     }

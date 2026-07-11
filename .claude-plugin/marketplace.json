@@ -7,8 +7,8 @@
     {
       "name": "guided-coding-mentor",
       "source": "./guided-coding-mentor",
-      "description": "Senior engineering mentor for deliberate coding practice with TODO-driven workflow",
-      "version": "1.1.0",
+      "description": "Senior engineering mentor for deliberate coding practice: you write and verify every line, gated on explaining it before you advance",
+      "version": "2.0.0",
       "author": {
         "name": "Ladvien"
       }
@@ -26,6 +26,16 @@
       "name": "research-to-flashcards",
       "source": "./research-to-flashcards",
       "description": "Turn research into spaced-repetition flashcards in Mochi: retrieve source material via home-still, distill it into atomic tenets, get human approval, then push to the Mochi API (kebab-case keys, one-concurrent-request limit, duplicate-safe re-runs).",
+      "version": "0.1.0",
+      "author": {
+        "name": "Ladvien"
+      }
+    },
+    {
+
+      "name": "procedural-animation-assets",
+      "source": "./procedural-animation-assets",
+      "description": "Take any Blender-modeled asset and make it procedurally animatable in a game engine: choose the technique (morph / skeletal+drivers / vertex-shader / physics / spline / runtime-mesh-gen), author it through BlenderMCP, export to glTF, and drive it in-engine — at any polygon budget.",
       "version": "0.1.0",
       "author": {
         "name": "Ladvien"

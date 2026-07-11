@@ -1,31 +1,5 @@
 # Design Patterns Reference
 
-## The Socratic Method for Design
-
-Don't interrogate. Guide them to better thinking through questions.
-
-### Problem Discovery Questions
-
-**Surface level → Root cause:**
-```
-"What problem are you trying to solve?"
-↓
-"Who specifically experiences this?"
-↓
-"What happens when they hit this problem?"
-↓
-"Why hasn't this been solved before?"
-↓
-"Why solve it now?"
-```
-
-**Detecting solution-first thinking:**
-- User says: "I need to add a cache"
-- You say: "What's slow? Let's understand the problem before jumping to caching."
-
-- User says: "I want to refactor the auth module"
-- You say: "What's wrong with it today? What pain is it causing?"
-
 ### Scope Management Questions
 
 **Expanding scope (if too narrow):**
@@ -65,41 +39,41 @@ Don't interrogate. Guide them to better thinking through questions.
 - "If you had to pick two of [fast, cheap, good], which two?"
 
 **Common trade-off dimensions:**
-| Dimension | vs. |
-|-----------|-----|
-| Simplicity | Flexibility |
-| Performance | Maintainability |
-| Time to ship | Polish |
-| Generality | Specificity |
-| Consistency | Availability |
+| Dimension    | vs.             |
+| ------------ | --------------- |
+| Simplicity   | Flexibility     |
+| Performance  | Maintainability |
+| Time to ship | Polish          |
+| Generality   | Specificity     |
+| Consistency  | Availability    |
 
 ## Recognizing Design Smells
 
 ### Problem Smells
 
-| Smell | Example | Response |
-|-------|---------|----------|
-| Solution as problem | "I need a cache" | "What's slow?" |
-| Vague problem | "It's confusing" | "Who's confused? When?" |
-| No user | "We should refactor" | "Who benefits?" |
-| Premature | "We might need this" | "What's the trigger to build it?" |
+| Smell               | Example              | Response                          |
+| ------------------- | -------------------- | --------------------------------- |
+| Solution as problem | "I need a cache"     | "What's slow?"                    |
+| Vague problem       | "It's confusing"     | "Who's confused? When?"           |
+| No user             | "We should refactor" | "Who benefits?"                   |
+| Premature           | "We might need this" | "What's the trigger to build it?" |
 
 ### Scope Smells
 
-| Smell | Example | Response |
-|-------|---------|----------|
-| Kitchen sink | "And also..." | "Let's focus. What's the MVP?" |
-| No boundaries | Everything is "must have" | "If you cut one, which?" |
-| Gold plating | "It should also handle..." | "Is that in the problem statement?" |
+| Smell         | Example                    | Response                            |
+| ------------- | -------------------------- | ----------------------------------- |
+| Kitchen sink  | "And also..."              | "Let's focus. What's the MVP?"      |
+| No boundaries | Everything is "must have"  | "If you cut one, which?"            |
+| Gold plating  | "It should also handle..." | "Is that in the problem statement?" |
 
 ### Solution Smells
 
-| Smell | Example | Response |
-|-------|---------|----------|
-| First idea only | No alternatives considered | "What's another way?" |
-| Complexity worship | Over-engineered | "What's the simplest version?" |
-| Resume-driven | "Let's use [hot tech]" | "Why that over [boring tech]?" |
-| Handwaving | "We'll figure it out" | "What specifically is unclear?" |
+| Smell              | Example                    | Response                        |
+| ------------------ | -------------------------- | ------------------------------- |
+| First idea only    | No alternatives considered | "What's another way?"           |
+| Complexity worship | Over-engineered            | "What's the simplest version?"  |
+| Resume-driven      | "Let's use [hot tech]"     | "Why that over [boring tech]?"  |
+| Handwaving         | "We'll figure it out"      | "What specifically is unclear?" |
 
 ## Design Document Quality Checklist
 

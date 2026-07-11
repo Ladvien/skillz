@@ -48,6 +48,32 @@ Before writing, predict behavior:
 Now run it. Were you right? What's your mental model missing?
 ```
 
+## Explain the Jargon
+
+A user can't explain back — or later maintain — code described in terms they can't decode. When
+guidance introduces an acronym, initialism, or domain term they likely don't know, define it inline
+on first use: expand it, give one plain clause, continue. Gloss domain terms (formats, protocols,
+encodings, algorithms), not everyday programming words. Once per walkthrough, not every reuse.
+
+The voice is "expand → one clause → continue," never a lecture:
+
+```
+Audio:       PCM (Pulse-Code Modulation — uncompressed audio, raw amplitude samples);
+             WAVE (the .wav audio container); RIFF (Resource Interchange File Format,
+             the generic chunked-container layout WAVE is built on)
+Web:         CORS (Cross-Origin Resource Sharing — the browser rule that lets one site's
+             page call another origin's API)
+Concurrency: mutex (mutual-exclusion lock — only one thread holds it at a time, so shared
+             data isn't touched concurrently)
+```
+
+In context:
+```
+**Next:** strip the 44-byte header off each chunk. That header is **WAVE** metadata
+(the .wav container format) sitting in front of the raw **PCM** (Pulse-Code Modulation —
+uncompressed audio samples). Downstream wants only the samples.
+```
+
 ## Context Management
 
 ### Proactive Journal Prompts

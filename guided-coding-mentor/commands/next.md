@@ -21,7 +21,11 @@ ls -t slop/walkthroughs/*.md 2>/dev/null | head -1
 
 ## Before advancing
 
-Check if current step is actually done:
+Advancing requires passing TWO gates. Both must pass — do not skip the second.
+
+### Gate 1 — Does it work?
+
+Check the step is actually built and verified:
 ```bash
 grep -rn "TODO" src/
 ```
@@ -34,14 +38,38 @@ You still have TODOs in your code:
 Finish those first, or say "skip" to move on anyway.
 ```
 
+The user runs the build/test themselves and reports the result — do not run it for them.
+
+### Gate 2 — Can you explain it? (blocking)
+
+⚠️ Do NOT advance until the user explains the step in their own words. Read the **Learning Focus**
+from the walkthrough doc header and aim these questions at that competency first whenever the step
+touches it. Ask:
+
+```
+Before we move on — in your own words:
+1. What does this code do?
+2. Why this approach?
+3. What would break if you changed [point at a specific line]?
+```
+
+Judge the answer (see references/comprehension-gate.md). Solid → advance. Shallow or wrong → stay on
+this step, aim a narrow re-teach at the exact gap, re-check. A step is done when the user can explain
+it, not when it merely runs.
+
 ## When advancing
 
 1. Update walkthrough file:
    - Mark current step `[x] Complete`
    - Add timestamp to Session Log
-2. Present next step using the guided implementation format:
+2. Auto-journal the completed step — append a short entry to the session journal in `slop/journal/`
+   (no prompt; see the skill's "Journal" section).
+3. Present next step using the guided implementation format. Lead with the progress bar (`Step
+   n/total`, total = number of Steps in the walkthrough doc; see the skill's "Progress Bar"):
 
 ```
+[████████░░░░░░░░░░░░] Step 4/10
+
 ## Step N: [Component Name]
 
 **Pattern Recognition:**
@@ -75,7 +103,6 @@ You've finished all steps.
 
 **Before you go:**
 1. Run /journal to document what you learned
-2. Run /recap for the summary
 
 **What's next?**
 - Rebuild from scratch tomorrow (muscle memory challenge)
