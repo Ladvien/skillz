@@ -40,6 +40,15 @@
       "author": {
         "name": "Ladvien"
       }
+    },
+    {
+      "name": "research-synthesis",
+      "source": "./research-synthesis",
+      "description": "Turn a high-level topic or folk question into a cited, audited literature survey using a home-still corpus: frozen protocol, premise-check, seed-validated logged search with snowballing, two-pass screening with kappa, acquisition, evidence-anchored deep reading, GRADE / GRADE-CERQual certainty, an insight layer, and a PRISMA-style report with a blocking citation audit.",
+      "version": "0.1.0",
+      "author": {
+        "name": "Ladvien"
+      }
     }
   ]
 }
