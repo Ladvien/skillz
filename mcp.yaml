@@ -1,0 +1,38 @@
+# MCP servers shared across the home-cloud machines.
+#
+# Imported by every machine with:
+#   skillshare mcp sync            (writes each server into its Agent configs)
+#
+# Rules for this file:
+#   * Only servers reachable from every machine go here (LAN HTTP endpoints,
+#     or stdio servers whose command exists on every machine).
+#   * NEVER put a secret in this repo. The repo is public. Secrets are
+#     referenced with fromEnv, which syncs as ${VAR} and is read from the
+#     Agent's own environment on each machine.
+#   * Machine-local stdio servers (paths under $HOME, .venv binaries) do not
+#     belong here; keep those in each machine's own ~/.claude.json.
+#
+# Reachability verified from all 8 hosts (mac_air, big, big_mac, bmb,
+# one, two, three, four) on 2026-11-04.
+
+servers:
+  # Blender scene-control MCP; HTTP, open, on big.
+  golem:
+    transport: streamable-http
+    url: http://192.168.1.110:9786/mcp
+    targets: [claude]
+
+  # iMessage semantic search; HTTP, open. Runs on mac_air.
+  imessage-search:
+    transport: streamable-http
+    url: http://192.168.1.112:8090/mcp
+    targets: [claude]
+
+  # Academic paper pipeline on big. Requires a bearer token: set
+  # HOME_STILL_MCP_TOKEN in each machine's environment before syncing.
+  home-still:
+    transport: streamable-http
+    url: http://192.168.1.110:7445/mcp
+    bearerToken:
+      fromEnv: HOME_STILL_MCP_TOKEN
+    targets: [claude]
