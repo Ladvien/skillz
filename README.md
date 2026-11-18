@@ -20,6 +20,7 @@ The marketplace is declared in [`.claude-plugin/marketplace.json`](.claude-plugi
 | `research-to-flashcards` | 0.1.0 | Turn research into spaced-repetition flashcards in Mochi: retrieve via home-still, distill into atomic tenets, approve, push to the Mochi API. |
 | `procedural-animation-assets` | 0.1.0 | Make a Blender-modeled asset procedurally animatable in-engine: choose the technique, author via BlenderMCP, export glTF, drive it in-engine. |
 | `research-synthesis` | 0.1.0 | Turn a topic into a cited, audited literature survey over a home-still corpus: frozen protocol, snowballing search, screening with kappa, GRADE certainty, PRISMA report, blocking citation audit. |
+| `convodump` | 0.1.0 | Transcribe audio or video with speaker diarization, time codes and word timestamps, plus media metadata, through the ConvoDump server. |
 
 ## Use as a skillshare source
 
@@ -31,7 +32,7 @@ skillshare init --remote git@github.com:Ladvien/skillz.git   # once
 skillshare pull                                              # elsewhere
 ```
 
-`skillshare` discovers all 9 skills at any depth. Because the skills are nested
+`skillshare` discovers all 10 skills at any depth. Because the skills are nested
 inside plugin folders, point the target at standard naming to get clean link
 names:
 

@@ -1,0 +1,5 @@
+{
+  "name": "convodump",
+  "description": "Transcribe audio or video files with speaker diarization, time codes and word timestamps, and extract media metadata, through the ConvoDump server.",
+  "version": "0.1.0"
+}
