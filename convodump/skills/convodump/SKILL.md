@@ -26,22 +26,27 @@ Always call the client by its absolute path: `~/.local/bin/convodump`.
 Without `--out-dir`, `convodump media run <file>` prints readable lines
 (`[00:00:05.000 → 00:00:05.900] S2: text`); `--output json` prints the document on one line.
 
-## Output schema (`schema_version` 1)
+## Output schema (`schema_version` 2)
 
 * `source`: `file_name` (basename only), `size_bytes`, `sha256`.
 * `media`: ffprobe metadata: `format_name`, `format_long_name`, `duration_s`, `size_bytes`,
   `bit_rate`, `tags` (title, artist, creation time, … as the file carries them), `streams[]`
   and `chapters[]` (raw ffprobe), `transcribed_stream_index` (the audio stream that was used).
-* `engine`: `name`, `version`, `asr_model`, `diarization_model`, `language_requested`.
+* `engine`: `name`, `version`, `asr_model`, `diarization_model`, `diarization_preset`,
+  `recognition_mode` (`offline-chunked` when a long file was split for full-attention
+  recognition, `offline` when one pass covered it), `language_requested`.
 * `transcript`:
   * `text`, `languages[]`, `duration_s`, `confidence`, `unattributed_word_count`
   * `speakers[]`: `id` (`S1`, `S2`, …), `word_count`, `segment_count`, `talk_time_s`, `first_start_s`
   * `segments[]`: `index`, `speaker` (null if unattributed), `start_s`, `end_s`, `start_tc`,
     `end_tc` (`HH:MM:SS.mmm`), `text`, `first_word`, `last_word`
   * `words[]`: `index`, `text`, `start_s`, `end_s`, `confidence`, `speaker`
-* `timing`: `probe_ms`, `decode_ms`, `engine_ms`, `total_ms`.
+* `timing`: `probe_ms`, `decode_ms`, `diarize_ms` (the separate diarization pass), `engine_ms`,
+  `total_ms`.
 
-A new segment starts when the speaker changes or the same speaker pauses for more than 2 s.
+A segment is one diarizer turn; each word carries the speaker of the turn it overlaps longest.
+When the diarizer finds nothing, segments fall back to grouping words by speaker change or a pause
+over 2 s, and `unattributed_word_count` shows how much went unlabelled.
 
 ## jq recipes
 
